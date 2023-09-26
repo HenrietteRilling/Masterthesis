@@ -1,4 +1,4 @@
 a=1
 b=2
-c=a+b
-print(f'{c} is working')
+
+print(f'{a+b} is working')
