@@ -78,12 +78,27 @@ if __name__ == "__main__":
     #load data
     WL, _, _, station_id_to_name = get_WL_data(r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\Data_WL')
     
+    #remove outliers based on z-score
+    zscore=(WL-WL.mean())/WL.std()
+    threshold=3
+    WL_wo_anom= WL 
+    #Remove anomalies from ns Uldumkær
+    for col in WL.columns:
+        WL_wo_anom[col][np.abs(zscore[col])>threshold]=np.nan
+
     rows=7
     cols=3
-    # plot_water_level_subplot(WL, rows, cols, station_id_to_name)
-    
-    # for col in WL.columns:
-    #     plot_water_level(WL[[col]], station_id_to_name.get(col))
+#    plot_water_level_subplot(WL, rows, cols, station_id_to_name)
+    plot_water_level(WL[['211711']], station_id_to_name.get('211711'))
+
+
+
+'''Plotting examples'''
+# plot_water_level_subplot(WL, rows, cols, station_id_to_name)
+
+# for col in WL.columns:
+#     plot_water_level(WL[[col]], station_id_to_name.get(col))
+
         
-for col in WL.columns:
-    plot_water_level_bokeh(WL[[col]],  station_id_to_name.get(col))        
+# for col in WL.columns:
+#     plot_water_level_bokeh(WL[[col]],  station_id_to_name.get(col))        
