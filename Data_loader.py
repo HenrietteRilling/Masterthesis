@@ -60,14 +60,15 @@ def get_prcp_data(SVK_datapath, DMI_datapath, join=False):
     # Set the 'date' column as the index
     df_DMI.set_index('date', inplace=True)
     
+    #Remove time zone information, other data doesn't hold timezone information, timezone information causes issue with concating etc.
+    df_DMI.index=df_DMI.index.tz_localize(None)
+    
     if join:
         #concat dataframes to one dataframe
-        joined_df=pd.concat([df_SVK, df_DMI])
-        #assure that index is Datetimeindex and drop timezone information
-        joined_df.index=pd.to_datetime(joined_df.index.tz_localize(None))
-       
-        return joined_df
+        return pd.concat([df_SVK, df_DMI], axis=1)
     
     else:    
         return df_SVK, df_DMI
 
+#prcp=get_prcp_data(r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\SVK', r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\DMI_Climate_Data_prcp', join=True)
+#SVK, DMI=get_prcp_data(r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\SVK', r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\DMI_Climate_Data_prcp')
