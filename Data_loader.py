@@ -39,3 +39,27 @@ def get_WL_data(datapath):
     labels.columns=WL.columns
     
     return WL, labels, station_name_to_id, station_id_to_name
+
+'''Function takes datapaht as input and returns preprocessed DataFrame with prcp data'''
+
+def get_prcp_data(SVK_datapath, DMI_datapath):
+    
+    
+    #load preprocessed SVK data
+    df_SVK=pd.read_csv(os.path.join(SVK_datapath, 'SVK_preprocessed.csv'), delimiter=',')
+    # Convert the 'time' column to datetime
+    df_SVK['time']=pd.to_datetime(df_SVK.iloc[:,0],format='%Y-%m-%d %H:%M:%S')
+    
+    # Set the 'time' column as the index
+    df_SVK.set_index('time', inplace=True)
+ 
+    #load preprocessed DMI data
+    df_DMI=pd.read_csv(os.path.join(DMI_datapath, 'DMI_preprocessed.csv'), delimiter=',')
+    # Convert the 'date' column to datetime
+    df_DMI['date']=pd.to_datetime(df_DMI.iloc[:,0],format='%Y-%m-%d %H:%M:%S')
+    
+    # Set the 'date' column as the index
+    df_DMI.set_index('date', inplace=True)
+    
+    return df_SVK, df_DMI
+
