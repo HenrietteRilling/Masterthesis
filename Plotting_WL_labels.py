@@ -64,9 +64,10 @@ def plot_with_labels_subplots(WL, labels, id_dict,rows, cols):
         
         #get labels
         lbls=np.sort(df[f'{col}_label'].unique())
+        print(lbls)
         
         label_mapping = {0: 'Normal Signal', 1:'Sensor Error' , 2:'Missing Values', 3:'Outlier'}
-        colors = ['white','cyan' ,'blue', 'red']  # Replace with your preferred colors
+        colors = ['white','cyan' ,'blue']  # Replace with your preferred colors
     
         # Create a custom colormap
         custom_cmap = mcolors.ListedColormap(colors)  # Use only the necessary colors
