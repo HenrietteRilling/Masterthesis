@@ -42,8 +42,7 @@ def get_WL_data(datapath):
 
 '''Function takes datapaht as input and returns preprocessed DataFrame with prcp data'''
 
-def get_prcp_data(SVK_datapath, DMI_datapath):
-    
+def get_prcp_data(SVK_datapath, DMI_datapath, join=False):
     
     #load preprocessed SVK data
     df_SVK=pd.read_csv(os.path.join(SVK_datapath, 'SVK_preprocessed.csv'), delimiter=',')
@@ -61,5 +60,14 @@ def get_prcp_data(SVK_datapath, DMI_datapath):
     # Set the 'date' column as the index
     df_DMI.set_index('date', inplace=True)
     
-    return df_SVK, df_DMI
+    if join:
+        #concat dataframes to one dataframe
+        joined_df=pd.concat([df_SVK, df_DMI])
+        #assure that index is Datetimeindex and drop timezone information
+        joined_df.index=pd.to_datetime(joined_df.index.tz_localize(None))
+       
+        return joined_df
+    
+    else:    
+        return df_SVK, df_DMI
 
