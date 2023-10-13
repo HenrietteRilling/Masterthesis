@@ -4,6 +4,11 @@ Created on Wed Oct  4 09:08:08 2023
 
 @author: Henriette
 """
+# =============================================================================
+# To Dos:
+    # Implement maybe class Dataset??
+# =============================================================================
+
 
 import pandas as pd
 import numpy as np
@@ -58,6 +63,11 @@ def scale_data(data):
 def rescale_data(data, scaler):
     rescaled_data=scaler.inverse_transform(data)
     return rescaled_data
+
+def get_dataloader(features, labels, batch_size, shuffle=True):
+    dataset = torch.utils.data.TensorDataset(torch.tensor(features).float(), torch.tensor(labels).float()) # insert into tensor dataset, .float() as LSTM needs torch.floa32 as input
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle) # insert dataset into data loader
+    return dataset, data_loader
 
 def plot_predictions(epoch, y, y_pred_train, y_pred_val, train_start, train_end):
     plt.figure()
@@ -131,13 +141,18 @@ horizon=1
 features_train, labels_train = timeseries_dataset_from_array(X_train_sc, window_size, horizon, label_indices=[0])
 features_val, labels_val=timeseries_dataset_from_array(X_val_sc, window_size, horizon, label_indices=[0]) 
 
-dataset = torch.utils.data.TensorDataset(torch.tensor(features_train), torch.tensor(labels_train)) # insert into tensor dataset
-data_loader = torch.utils.data.DataLoader(dataset, batch_size=10, shuffle=True) # insert dataset into data loader
+
 #batch_size (int, optional) – how many samples per batch to load (default: 1)
+batch_size=10
+
+#get data_loader for all data, data_loader is an torch iterable to be able to iterate over batches
+dataset_train, data_loader_train = get_dataloader(features_train, labels_train, batch_size=batch_size)
+dataset_val, data_loader_val=get_dataloader(features_val, labels_val, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
+
 
 '''LSTM training + SetUp'''
 #defintion of hyperparameters
-num_epochs = 100 #1000 epochs
+num_epochs = 10 #1000 epochs
 learning_rate = 0.001 #0.001 lr
 
 input_size = 2 #number of features
@@ -155,61 +170,105 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 best_val_loss=100
 #lists to store losses
 train_losses=[]
+train_all_losses=[]
 val_losses=[]
+val_all_losses=[]
 
 
 #Training of the model
 for epoch in range(num_epochs):
-    counter = 0 
     model.train()
-    for X_batch, y_batch in data_loader:
-        counter+=1
+    running_loss_train=0.0
+    for X_batch, y_batch in data_loader_train:
+        #Check if there are nan values in the input ->if yes, predictions can't be calculated
         if torch.any(X_batch.isnan()):
-            print(f'X_batch is nan: {X_batch}')
-        X_batch=X_batch.float()
-        y_batch=y_batch.float()
-        y_pred=model(X_batch)
+            print('X_batch is nan!')
+            
+        #pytorch accumulates gradients, we need to clear them out for each instance
         optimizer.zero_grad()
+        #predict
+        y_pred=model(X_batch)
+
+        #compute loss and gradients
         loss=loss_fn(y_pred, y_batch)
+        #calculate RSME per batch
+        running_loss_train+=np.sqrt(loss.item())
+        
+        #compute gradient
         loss.backward()
+        #update parameters
         optimizer.step()
     print("Epoch: %d, loss: %1.5f" % (epoch, loss.item()))
-
+    #average loss per batch
+    avg_train_loss=running_loss_train/len(data_loader_train)
+    train_losses.append(avg_train_loss)
+    
     model.eval()
     with torch.no_grad():
         '''Train data'''
-        y_pred_train = model(torch.tensor(features_train).float())
-        train_rsme=np.sqrt(loss_fn(y_pred_train, torch.tensor(labels_train).float()))
-        train_losses.append(train_rsme)
+        #prediction on whole training data
+        y_pred_train_all = model(torch.tensor(features_train).float())
+        
+        train_all_rsme=np.sqrt(loss_fn(y_pred_train_all, torch.tensor(labels_train).float()))
+        train_all_losses.append(train_all_rsme)
 
         #rescale data to actual range
         #y_pred = rescale_data(y_pred, train_sc) #To Do
-       
+        
+        running_loss=0.0
+        
         '''Validation data'''
-        y_pred_val = model(torch.tensor(features_val).float())
-        val_rsme=np.sqrt(loss_fn(y_pred_val, torch.tensor(labels_val).float()))
-        val_losses.append(val_rsme)
-        if val_rsme < best_val_loss:
-            best_val_loss=val_rsme
+        #prediction on whole validation data
+        y_pred_val_all = model(torch.tensor(features_val).float())
+        val_all_rsme=np.sqrt(loss_fn(y_pred_val_all, torch.tensor(labels_val).float()))  
+        val_all_losses.append(val_all_rsme)
+        
+        #prediction on batches of validation data
+        for X_val_batch, y_val_batch in data_loader_val:
+            y_pred_val = model(X_val_batch)
+            val_rsme=np.sqrt(loss_fn(y_pred_val,y_val_batch))
+            running_loss+=val_rsme
+        
+        #calculate average loss over validation batches
+        avg_val_loss=running_loss/len(data_loader_val)
+        #store losses for plotting
+        val_losses.append(avg_val_loss)
+        
+        #check if model performas better than previous models
+        if avg_val_loss < best_val_loss:
+            best_val_loss=avg_val_loss
             best_model=model.state_dict()
 
         #rescale data to actual range
         # y_pred=rescale_data(y_pred, val_sc) #To Do
         if epoch % 10 ==0:
-            plot_predictions(epoch, X_sc_complete, y_pred_train, y_pred_val, window_size, len(X_train_sc))
+            plot_predictions(epoch, X_sc_complete, y_pred_train_all, y_pred_val_all, window_size, len(X_train_sc))
          
-    print(f'Epoch {(epoch)}: ,Train RSME: {train_rsme}, Test RSME: {val_rsme}')
+    print(f'Epoch {(epoch)}: Average Train RSME: {avg_train_loss}, Average Test RSME: {avg_val_loss}')
+    print(f'All Train data RSME {train_all_rsme}')
+    
 
+#load saved "best" model
 model.load_state_dict(best_model)
 
 plt.figure()
-plt.plot(train_losses, label='training')
-plt.plot(val_losses, label='validation')
+plt.plot(train_losses, label='training (average)')
+plt.plot(val_losses, label='validation (average')
 plt.xlabel('Epoch');plt.ylabel('RMSE loss')
 plt.axvline(x = val_losses.index(min(val_losses)), color = 'r', linestyle='dashed', label = 'lowest validation error')
 plt.legend()
+plt.title('RSME on average per batch')
 
-features_test, labels_test = timeseries_dataset_from_array(X_test_sc, window_size, horizon, label_indices=[0])
-y_pred_test=model(torch.tensor(features_test).float())
-plot_predictions('', X_test_sc, y_pred_test, y_pred_val, 0, len(X_test_sc))
+
+plt.figure()
+plt.plot(train_all_losses, label='training')
+plt.plot(val_all_losses, label='validation')
+plt.xlabel('Epoch');plt.ylabel('RMSE loss')
+plt.axvline(x = val_all_losses.index(min(val_all_losses)), color = 'r', linestyle='dashed', label = 'lowest validation error')
+plt.legend()
+plt.title('RSME on all data')
+
+# features_test, labels_test = timeseries_dataset_from_array(X_test_sc, window_size, horizon, label_indices=[0])
+# y_pred_test=model(torch.tensor(features_test).float())
+# plot_predictions('', X_test_sc, y_pred_test, y_pred_val, 0, len(X_test_sc))
 
