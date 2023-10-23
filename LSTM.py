@@ -60,9 +60,14 @@ def scale_data(data):
     scaled_data=scaler.fit_transform(data)
     return scaled_data, scaler
 
-def rescale_data(data, scaler):
-    rescaled_data=scaler.inverse_transform(data)
+def rescale_data(data, scaler, input_dim):
+    #input data has one dimension, output data 2, scaler expects the same dimensions as the input data therefore, we need to rescale
+    data_reshaped=np.zeros((data.shape[0],input_dim))
+    #assing data help array, reshaping tensor form dimensions (batchsize, 1,1) to (batchsize)
+    data_reshaped[:,0]=data[:,0,0].numpy()    
+    rescaled_data=scaler.inverse_transform(data_reshaped)
     return rescaled_data
+# Eventually return only WL data of interest rescaled_data[:,0]
 
 def get_dataloader(features, labels, batch_size, shuffle=True):
     dataset = torch.utils.data.TensorDataset(torch.tensor(features).float(), torch.tensor(labels).float()) # insert into tensor dataset, .float() as LSTM needs torch.floa32 as input
@@ -76,6 +81,7 @@ def plot_predictions(epoch, y, y_pred_train, y_pred_val, train_start, train_end)
     #Training data
     train_plot=np.ones_like(y) * np.nan
     #add another dimension
+
     train_plot=train_plot[:,None]
     train_plot[train_start:train_end]=y_pred_train[:,-1,:]
     plt.plot(train_plot, label='train')   
@@ -90,6 +96,32 @@ def plot_predictions(epoch, y, y_pred_train, y_pred_val, train_start, train_end)
     plt.legend()
     plt.show()    
     
+def plot_predictions_rsc(epoch, y, y_pred_train, y_pred_val, train_start, train_end):
+    plt.figure()
+    plt.plot(y, label='observation', color='b')
+    
+    #Training data
+    train_plot=np.ones_like(y) * np.nan
+    #add another dimension
+    train_plot=train_plot[:,None]
+    #extract WL data and add another dimension
+    y_pred_train=y_pred_train[:,0]
+    train_plot[train_start:train_end]=y_pred_train[:, None]
+    # train_plot[train_start:train_end]=y_pred_train[:,0]
+    plt.plot(train_plot, label='train')   
+    
+    #validation data
+    val_plot=np.ones_like(y) * np.nan
+    #add another dimension
+    val_plot=val_plot[:,None]
+    
+    y_pred_val=y_pred_val[:,0]
+    val_plot[train_end+train_start:len(y)]=y_pred_val[:,None]
+    plt.plot(val_plot, label='validation')
+    plt.xlabel('Date'); plt.ylabel('Water level [m]')
+    plt.title(f'Epoch: {epoch}')
+    plt.legend()
+    plt.show()    
     
 '''Data Preprocessing'''
 #Load data
@@ -137,6 +169,9 @@ X_sc_complete=np.append(X_train_sc[:,0], X_val_sc[:,0])
 window_size=10
 horizon=1
 
+#how many features do we give as an input
+nr_features=2
+
 #get input and targets in batches with 10 timesteps input and predict the next timestep t+1, prcp data is only important for input, therefore label
 features_train, labels_train = timeseries_dataset_from_array(X_train_sc, window_size, horizon, label_indices=[0])
 features_val, labels_val=timeseries_dataset_from_array(X_val_sc, window_size, horizon, label_indices=[0]) 
@@ -150,9 +185,9 @@ dataset_train, data_loader_train = get_dataloader(features_train, labels_train, 
 dataset_val, data_loader_val=get_dataloader(features_val, labels_val, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
 
 
-'''LSTM training + SetUp'''
+'''LSTM training + Set-Up'''
 #defintion of hyperparameters
-num_epochs = 10 #1000 epochs
+num_epochs = 20 #1000 epochs
 learning_rate = 0.001 #0.001 lr
 
 input_size = 2 #number of features
@@ -213,7 +248,7 @@ for epoch in range(num_epochs):
         train_all_losses.append(train_all_rsme)
 
         #rescale data to actual range
-        #y_pred = rescale_data(y_pred, train_sc) #To Do
+        y_hat_train_all_rsc = rescale_data(y_pred_train_all, train_sc, nr_features) #To Do
         
         running_loss=0.0
         
@@ -240,9 +275,10 @@ for epoch in range(num_epochs):
             best_model=model.state_dict()
 
         #rescale data to actual range
-        # y_pred=rescale_data(y_pred, val_sc) #To Do
-        if epoch % 10 ==0:
-            plot_predictions(epoch, X_sc_complete, y_pred_train_all, y_pred_val_all, window_size, len(X_train_sc))
+        y_hat_val_all_rsc=rescale_data(y_pred_val_all, val_sc, nr_features) #To Do
+        
+        # if epoch % 10 ==0:
+        plot_predictions_rsc(epoch, X_test_all, y_hat_train_all_rsc, y_hat_val_all_rsc, window_size, len(X_train_sc))
          
     print(f'Epoch {(epoch)}: Average Train RSME: {avg_train_loss}, Average Test RSME: {avg_val_loss}')
     print(f'All Train data RSME {train_all_rsme}')
@@ -250,6 +286,15 @@ for epoch in range(num_epochs):
 
 #load saved "best" model
 model.load_state_dict(best_model)
+model.eval()
+
+#plot results of best model
+y_hat_train=model(torch.tensor(features_train).float())
+y_hat_val=model(torch.tensor(features_val).float())
+y_hat_train=rescale_data(y_hat_train.detach(), train_sc, nr_features)
+y_hat_val=rescale_data(y_hat_val.detach(), val_sc, nr_features)
+
+plot_predictions_rsc('Best Model', X_test_all, y_hat_train, y_hat_val, window_size, len(X_train))
 
 plt.figure()
 plt.plot(train_losses, label='training (average)')
@@ -272,3 +317,21 @@ plt.title('RSME on all data')
 # y_pred_test=model(torch.tensor(features_test).float())
 # plot_predictions('', X_test_sc, y_pred_test, y_pred_val, 0, len(X_test_sc))
 
+
+
+# '''Plot split of the data'''
+# fig, ax = plt.subplots(2,1, sharex=True)
+# ax[0].plot(X_train[[test_id]], label='Train')
+# ax[0].plot(X_val[[test_id]], label='Validation')
+# ax[0].plot(X_test[[test_id]], label='Test')
+# ax[0].set_ylabel('Water Level [m]')
+# ax[0].set_title(f'Station: {test_station}')
+# #ax[0].axvspan(1,1, color='green')
+# ax[1].plot(X_train[test_prcp], label='Train')
+# ax[1].plot(X_val[test_prcp], label='Validation')
+# ax[1].plot(X_test[test_prcp], label='Test')
+# ax[1].set_ylabel('Precipitation [mm]')
+# ax[1].set_xlabel('Date')
+# ax[1].set_title(f'Station: {test_prcp}')
+# ax[1].legend()
+# plt.savefig(r'C:\Users\henri\Documents\Universität\Masterthesis\First LSTM\datasplit.png', dpi=300)
