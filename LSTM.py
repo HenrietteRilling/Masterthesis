@@ -37,14 +37,28 @@ class LSTM(nn.Module):
                           num_layers=num_layers, batch_first=True) #Defintion of the LSTM
         self.fc =  nn.Linear(hidden_size, 1) #fully connected last layer, combines input to one output
      
-    def forward(self, x):
+    def forward(self, x, future_pred=0):
         h_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.float32) #hidden state
         c_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.float32) #internal state
         # Propagate input through LSTM
         output, (hn, cn) = self.lstm1(x, (h_0, c_0)) #lstm with input, hidden, and internal state
         hn = hn.view(-1, self.hidden_size) #reshaping the data for Dense layer next
         out = self.fc(hn) #Final output
-        return out.unsqueeze(-1) #unsqueeze adds another dimension of 1 to the tensor, necessary to have same shape as batched target data
+
+        
+        for i in range(future_pred):
+            import pdb
+            pdb.set_trace()
+            #create future predictions if future_pred>0 is passed
+            #same as forward step above, using last output/prediction as input
+            o=torch.zeros(out.shape[0], out.shape[1],2)
+            o[:,:,0]=out
+            output, (hn, cn)=self.lstm1(o, (h_0, c_0))
+            hn=hn.view(-1, self.hidden_size)
+            out=self.fc(hn)
+            #To Do: save outputs for plotting and as future predicitons
+        
+        return out.unsqueeze(-1) #unsqueeze adds another dimension of 1 to the tensor, necessary to have same shape as batched target data   
 
 def get_test_data(stat_id, data_df):
     '''get data for specific station (e.g. WL, precipitation), cropped to their actual timeframe
@@ -207,7 +221,7 @@ dataset_val, data_loader_val=get_dataloader(features_val, labels_val, batch_size
 
 '''LSTM training + Set-Up'''
 #defintion of hyperparameters
-num_epochs = 5 #1000 epochs
+num_epochs = 1 #1000 epochs
 learning_rate = 0.001 #0.001 lr
 
 input_size = 2 #number of features
@@ -256,6 +270,8 @@ plt.title('MSE on average per batch')
 #load saved "best" model
 model.load_state_dict(best_model)
 model.eval()
+future=5
+pred=model(torch.tensor(features_val).float(), future_pred=future)
 
 #plot results of best model
 y_hat_train=model(torch.tensor(features_train).float())
