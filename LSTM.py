@@ -45,20 +45,25 @@ class LSTM(nn.Module):
         hn = hn.view(-1, self.hidden_size) #reshaping the data for Dense layer next
         out = self.fc(hn) #Final output
 
-        
+        out_future=[]
         for i in range(future_pred):
             import pdb
             pdb.set_trace()
             #create future predictions if future_pred>0 is passed
             #same as forward step above, using last output/prediction as input
-            o=torch.zeros(out.shape[0], out.shape[1],2)
+            o=torch.zeros(out.shape[0], out.shape[1], 2)
             o[:,:,0]=out
             output, (hn, cn)=self.lstm1(o, (h_0, c_0))
             hn=hn.view(-1, self.hidden_size)
             out=self.fc(hn)
             #To Do: save outputs for plotting and as future predicitons
-        
-        return out.unsqueeze(-1) #unsqueeze adds another dimension of 1 to the tensor, necessary to have same shape as batched target data   
+            out_future.append(out.unsqueeze(-1))
+
+        if future_pred == 0:
+            return out.unsqueeze(-1) #unsqueeze adds another dimension of 1 to the tensor, necessary to have same shape as batched target data   
+        else:
+            return out_future #return only future predictions
+
 
 def get_test_data(stat_id, data_df):
     '''get data for specific station (e.g. WL, precipitation), cropped to their actual timeframe
@@ -273,6 +278,14 @@ model.eval()
 future=5
 pred=model(torch.tensor(features_val).float(), future_pred=future)
 
+
+pred=[rescale_data(p.detach(), train_sc, nr_features) for p in pred]
+
+plt.figure()
+plt.plot(pred[0][:,0], label='test')
+plt.plot(X_test_all, label='observation')
+plt.legend()
+
 #plot results of best model
 y_hat_train=model(torch.tensor(features_train).float())
 y_hat_val=model(torch.tensor(features_val).float())
@@ -280,8 +293,6 @@ y_hat_train=rescale_data(y_hat_train.detach(), train_sc, nr_features)
 y_hat_val=rescale_data(y_hat_val.detach(), train_sc, nr_features)
 
 plot_predictions('Best Model', X_test_all, y_hat_train, y_hat_val, window_size, len(X_train))
-
-
 
 
 # # features_test, labels_test = timeseries_dataset_from_array(X_test_sc, window_size, horizon, label_indices=[0])

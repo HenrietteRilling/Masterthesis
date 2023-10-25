@@ -4,12 +4,6 @@ Created on Wed Oct  4 09:08:08 2023
 
 @author: Henriette
 """
-# =============================================================================
-# To Dos:
-    # Implement maybe class Dataset??
-# =============================================================================
-
-
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
@@ -37,14 +31,32 @@ class LSTM(nn.Module):
                           num_layers=num_layers, batch_first=True) #Defintion of the LSTM
         self.fc =  nn.Linear(hidden_size, 1) #fully connected last layer, combines input to one output
      
-    def forward(self, x):
+    def forward(self, x, future_pred=0):
         h_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.float32) #hidden state
         c_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.float32) #internal state
         # Propagate input through LSTM
         output, (hn, cn) = self.lstm1(x, (h_0, c_0)) #lstm with input, hidden, and internal state
         hn = hn.view(-1, self.hidden_size) #reshaping the data for Dense layer next
         out = self.fc(hn) #Final output
-        return out.unsqueeze(-1) #unsqueeze adds another dimension of 1 to the tensor, necessary to have same shape as batched target data
+
+        out_future=[]
+        for i in range(future_pred):
+            import pdb
+            pdb.set_trace()
+            #create future predictions if future_pred>0 is passed
+            #same as forward step above, using last output/prediction as input            o=torch.zeros(out.shape[0], out.shape[1], 2)
+            o=out.unsqueeze(-1)
+            output, (hn, cn)=self.lstm1(o, (h_0, c_0))
+            hn=hn.view(-1, self.hidden_size)
+            out=self.fc(hn)
+            #To Do: save outputs for plotting and as future predicitons
+            out_future.append(out.unsqueeze(-1))
+
+        if future_pred == 0:
+            return out.unsqueeze(-1) #unsqueeze adds another dimension of 1 to the tensor, necessary to have same shape as batched target data   
+        else:
+            return out_future #return only future predictions
+
 
 def get_test_data(stat_id, data_df):
     '''get data for specific station (e.g. WL, precipitation), cropped to their actual timeframe
@@ -66,7 +78,7 @@ def scale_data(data):
 def rescale_data(data, scaler, input_dim):
     #input data has one dimension, output data 2, scaler expects the same dimensions as the input data therefore, we need to rescale
     data_reshaped=np.zeros((data.shape[0],input_dim))
-    #assing data help array, reshaping tensor form dimensions (batchsize, 1,1) to (batchsize)
+    #assing data to help array, reshaping tensor form dimensions (batchsize, 1,1) to (batchsize)
     data_reshaped[:,0]=data[:,0,0].numpy()    
     rescaled_data=scaler.inverse_transform(data_reshaped)
     return rescaled_data
@@ -77,6 +89,40 @@ def get_dataloader(features, labels, batch_size, shuffle=True):
     data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle) # insert dataset into data loader
     return dataset, data_loader
 
+
+def train_one_epoch(epoch, model, train_dataloader, loss_func, optimizer):
+    #assure that model is in training mode
+    model.train()
+    running_loss=0.0
+    
+    for X_batch, y_batch in train_dataloader:
+        #pytorch accumulates gradients, therefore, clear gradients in each instance
+        optimizer.zero_grad()
+        #predict
+        y_hat=model(X_batch)
+        #Compute loss and gradients
+        loss=loss_func(y_hat, y_batch)
+        #compute gradient
+        loss.backward()
+        #update parameters
+        optimizer.step()
+    running_loss+=loss.item()
+    print(f"Epoch: {epoch}, Train loss: {running_loss:>4f}")
+    return running_loss 
+
+def eval_one_epoch(epoch, model, val_dataloader, loss_func):
+    model.eval()
+    running_loss=0.0
+
+    with torch.no_grad():
+        for X_batch, y_batch in val_dataloader:
+            y_hat = model(X_batch)
+            loss=loss_func(y_hat,y_batch)
+            running_loss+=loss.item()
+            
+    avg_loss=running_loss/len(val_dataloader)
+    print(f'Epoch: {epoch}, Val loss: {avg_loss:>4f}')
+    return avg_loss
   
 def plot_predictions(epoch, y, y_pred_train, y_pred_val, train_start, train_end):
     plt.figure()
@@ -104,7 +150,11 @@ def plot_predictions(epoch, y, y_pred_train, y_pred_val, train_start, train_end)
     plt.title(f'Epoch: {epoch}')
     plt.legend()
     plt.show()    
+  
     
+
+
+
 '''Data Preprocessing'''
 #Load data
 WL, _, station_name_to_id, _ = get_WL_data(r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\Data_WL')
@@ -128,8 +178,7 @@ X_WL=get_test_data(test_id, WL_wo_anom)
 X_prcp=get_test_data(test_prcp, prcp)
 
 #merge precipitation and WL data, select overlapping timeperiod
-#X=pd.concat([X_WL, X_prcp], axis=1).loc[X_WL.index.intersection(X_prcp.index)]
-
+# X=pd.concat([X_WL, X_prcp], axis=1).loc[X_WL.index.intersection(X_prcp.index)]
 X=X_WL
 
 #split in train, test and val data
@@ -145,7 +194,6 @@ X_test_all=X_test_all[test_id].to_numpy()
 X_train_sc, train_sc = scale_data(X_train)
 X_val_sc = train_sc.transform(X_val)
 X_test_sc = train_sc.transform(X_test)
-
 #concat scaled timeseries for plotting
 X_sc_complete=np.append(X_train_sc[:,0], X_val_sc[:,0])
 
@@ -172,7 +220,7 @@ dataset_val, data_loader_val=get_dataloader(features_val, labels_val, batch_size
 
 '''LSTM training + Set-Up'''
 #defintion of hyperparameters
-num_epochs = 50 #1000 epochs
+num_epochs = 1 #1000 epochs
 learning_rate = 0.001 #0.001 lr
 
 input_size = 1 #number of features
@@ -190,98 +238,25 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 best_val_loss=100
 #lists to store losses
 train_losses=[]
-train_all_losses=[]
 val_losses=[]
-val_all_losses=[]
 
-
-#Training of the model
 for epoch in range(num_epochs):
-    model.train()
-    running_loss_train=0.0
-    for X_batch, y_batch in data_loader_train:
-        #Check if there are nan values in the input ->if yes, predictions can't be calculated
-        if torch.any(X_batch.isnan()):
-            print('X_batch is nan!')
-            
-        #pytorch accumulates gradients, we need to clear them out for each instance
-        optimizer.zero_grad()
-        #predict
-        y_pred=model(X_batch)
-
-        #compute loss and gradients
-        loss=loss_fn(y_pred, y_batch)
-        #calculate MSE per batch
-        running_loss_train+=loss.item()
-        
-        #compute gradient
-        loss.backward()
-        #update parameters
-        optimizer.step()
+    #model training
+    loss=train_one_epoch(epoch, model, data_loader_train, loss_fn, optimizer)
+    #keep track of losses
+    train_losses.append(loss)
     
-    print("Epoch: %d, loss: %1.5f" % (epoch, loss.item()))
-    #average loss per batch
-    avg_train_loss=running_loss_train/len(data_loader_train)
-    train_losses.append(avg_train_loss)
+    #model validation
+    loss=eval_one_epoch(epoch, model, data_loader_val, loss_fn)
+    val_losses.append(loss)
     
-    model.eval()
-    with torch.no_grad():
-        '''Train data'''
-        #prediction on whole training data
-        y_pred_train_all = model(torch.tensor(features_train).float())
-        
-        train_all_mse=loss_fn(y_pred_train_all, torch.tensor(labels_train).float())
-        train_all_losses.append(train_all_mse.item())
+    #check if model performs better than previous models
+    if loss < best_val_loss:
+        best_val_loss=loss
+        best_model=model.state_dict()
 
-        #rescale data to actual range
-        y_hat_train_all_rsc = rescale_data(y_pred_train_all, train_sc, nr_features)
-        
-        running_loss=0.0
-        
-        '''Validation data'''
-        #prediction on whole validation data
-        y_pred_val_all = model(torch.tensor(features_val).float())
-        val_all_mse=loss_fn(y_pred_val_all, torch.tensor(labels_val).float())  
-        val_all_losses.append(val_all_mse.item())
-        
-        #prediction on batches of validation data
-        for X_val_batch, y_val_batch in data_loader_val:
-            y_pred_val = model(X_val_batch)
-            val_mse=loss_fn(y_pred_val,y_val_batch)
-            running_loss+=val_mse.item()
-        
-        #calculate average loss over validation batches
-        avg_val_loss=running_loss/len(data_loader_val)
-        #store losses for plotting
-        val_losses.append(avg_val_loss)
-        
-        #check if model performas better than previous models
-        if avg_val_loss < best_val_loss:
-            best_val_loss=avg_val_loss
-            best_model=model.state_dict()
 
-        #rescale data to actual range
-        y_hat_val_all_rsc=rescale_data(y_pred_val_all, train_sc, nr_features)
-        
-        if epoch % 10 ==0:
-            plot_predictions(epoch, X_test_all, y_hat_train_all_rsc, y_hat_val_all_rsc, window_size, len(X_train_sc))
-         
-    print(f'Epoch {(epoch)}: Average Train MSE: {avg_train_loss}, Average Validation MSE: {avg_val_loss}')
-    print(f'All Train data MSE {train_all_mse}')
-    
-
-#load saved "best" model
-model.load_state_dict(best_model)
-model.eval()
-
-#plot results of best model
-y_hat_train=model(torch.tensor(features_train).float())
-y_hat_val=model(torch.tensor(features_val).float())
-y_hat_train=rescale_data(y_hat_train.detach(), train_sc, nr_features)
-y_hat_val=rescale_data(y_hat_val.detach(), train_sc, nr_features)
-
-plot_predictions('Best Model', X_test_all, y_hat_train, y_hat_val, window_size, len(X_train))
-
+#plot development of losses   
 plt.figure()
 plt.plot(train_losses, label='training (average)')
 plt.plot(val_losses, label='validation (average')
@@ -291,59 +266,32 @@ plt.legend()
 plt.title('MSE on average per batch')
 
 
+#load saved "best" model
+model.load_state_dict(best_model)
+model.eval()
+future=5
+pred=model(torch.tensor(features_val).float(), future_pred=future)
+
+
+pred=[rescale_data(p.detach(), train_sc, nr_features) for p in pred]
+
 plt.figure()
-plt.plot(train_all_losses, label='training')
-plt.plot(val_all_losses, label='validation')
-plt.xlabel('Epoch');plt.ylabel('MSE loss')
-plt.axvline(x = val_all_losses.index(min(val_all_losses)), color = 'r', linestyle='dashed', label = 'lowest validation error')
+plt.plot(pred[0][:,0], label='test')
+# plt.plot(X_test_all, label='observation')
 plt.legend()
-plt.title('MSE on all data')
 
-# features_test, labels_test = timeseries_dataset_from_array(X_test_sc, window_size, horizon, label_indices=[0])
-# y_pred_test=model(torch.tensor(features_test).float())
-# plot_predictions('', X_test_sc, y_pred_test, y_pred_val, 0, len(X_test_sc))
+#plot results of best model
+y_hat_train=model(torch.tensor(features_train).float())
+y_hat_val=model(torch.tensor(features_val).float())
+y_hat_train=rescale_data(y_hat_train.detach(), train_sc, nr_features)
+y_hat_val=rescale_data(y_hat_val.detach(), train_sc, nr_features)
 
-
-'''Analysis of impact of loss calculation'''
-
-# plt.figure()
-# plt.plot(train_losses, label='training (average)')
-# plt.plot(val_losses, label='validation (average')
-# plt.plot(train_all_losses, label='training')
-# plt.plot(val_all_losses, label='validation')
-# plt.axvline(x = val_losses.index(min(val_losses)), color = 'r', linestyle='dashed', label = 'lowest validation error')
-# plt.axvline(x = val_all_losses.index(min(val_all_losses)), color = 'r', linestyle='dashed', label = 'lowest validation error')
-# plt.legend()
+plot_predictions('Best Model', X_test_all, y_hat_train, y_hat_val, window_size, len(X_train))
 
 
-# a=[val_losses[val]-val_all_losses[val] for val in range(len(val_losses))]
-
-# plt.figure()
-# plt.plot(a)
-
-# epochs=np.arange(1, num_epochs+1)
-# # Create a Bokeh figure
-# p = figure( x_axis_label='Epoch', y_axis_label='MSE loss')
-
-# # Plot the value data
-# p.line(epochs, train_losses, legend_label='Average training loss', line_color='blue')
-# p.line(epochs, val_losses, legend_label='Average validation loss', line_color='red')
-# p.line(epochs, train_all_losses, legend_label='Training loss', line_color='cyan')
-# p.line(epochs, val_all_losses, legend_label='Validation loss', line_color='pink')
-
-# # Create legend with custom labels
-# p.legend.title = 'Labels'
-# p.legend.label_text_font_size = '12pt'
-
-# # Specify the output file (HTML)
-# # output_file("bokeh_labeled_data.html")
-
-# # Show the plot
-# show(p)
-
-# p=figure(x_axis_label='Epoch', y_axis_label='Difference in MSE loss')
-# p.line(epochs, a)
-# show(p)
+# # features_test, labels_test = timeseries_dataset_from_array(X_test_sc, window_size, horizon, label_indices=[0])
+# # y_pred_test=model(torch.tensor(features_test).float())
+# # plot_predictions('', X_test_sc, y_pred_test, y_pred_val, 0, len(X_test_sc))
 
 
 # '''Plot split of the data'''
