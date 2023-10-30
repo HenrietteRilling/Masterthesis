@@ -30,8 +30,13 @@ class LSTM(nn.Module):
         self.lstm1 = nn.LSTM(input_size=input_size, hidden_size=hidden_size,
                           num_layers=num_layers, batch_first=True) #Defintion of the LSTM
         self.fc =  nn.Linear(hidden_size, 1) #fully connected last layer, combines input to one output
+        
+        #initialise self and hidden state as None
+        self.hidden_state=None
+        self.cell_state=None
      
     def forward(self, x, future_pred=0):
+        import pdb
         h_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.float32) #hidden state
         c_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.float32) #internal state
         # Propagate input through LSTM
@@ -41,31 +46,37 @@ class LSTM(nn.Module):
 
         out_future=[]
         for i in range(future_pred):
-            # import pdb
             # pdb.set_trace()
+            # if self.hidden_state==None:
+            # h_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.float32) #hidden state
+            # c_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.float32) #internal state        
+            # else:
+                # h_0=self.hidden_state
+                # c_0=self.cell_state
             #shift observations by one timestep
             x_shifted=torch.zeros(x.size())
             x_shifted[:,:-1,:]=x[:,1:,:]
             #add y_hat as newest observation
             x_shifted[:,-1,:]=out #alternativ: x_shifte[:,-1:,:]
             #create future predictions if future_pred>0 is passed
-            #same as forward step above, using last output/prediction as input            o=torch.zeros(out.shape[0], out.shape[1], 2)
-            # o=out.unsqueeze(-1)
+            #same as forward step above, using last output/prediction as input            
             output, (hn, cn)=self.lstm1(x_shifted, (h_0, c_0))
-            hn=hn.view(-1, self.hidden_size)
-            out=self.fc(hn)
+            hn_view=hn.view(-1, self.hidden_size)
+            out=self.fc(hn_view)
             #To Do
-            # if i%5 == 0:
-            #     plt.figure()
-            #     plt.plot(x_shifted)
-            #     plt.plot(out)
-            #     plt.title()
+            # if i%10 == 0:
+            #     if i==0:
+            #         plt.figure()
+            #     plt.plot(out[:,0].detach(), label=f'prediction future={i}')
+            #     plt.legend()
             #To Do: save outputs for plotting and as future predicitons
             out_future.append(out.unsqueeze(-1))
+            # self.hidden_state, self.cell_state = hn, cn
 
         if future_pred == 0:
             return out.unsqueeze(-1) #unsqueeze adds another dimension of 1 to the tensor, necessary to have same shape as batched target data   
         else:
+            # pdb.set_trace()
             return out_future #return only future predictions
 
 
@@ -231,7 +242,7 @@ dataset_val, data_loader_val=get_dataloader(features_val, labels_val, batch_size
 
 '''LSTM training + Set-Up'''
 #defintion of hyperparameters
-num_epochs = 2 #1000 epochs
+num_epochs = 10 #1000 epochs
 learning_rate = 0.001 #0.001 lr
 
 input_size = 1 #number of features
@@ -269,8 +280,8 @@ for epoch in range(num_epochs):
 
 #plot development of losses   
 plt.figure()
-plt.plot(train_losses, label='training (average)')
-plt.plot(val_losses, label='validation (average')
+plt.plot(train_losses, label='training')
+plt.plot(val_losses, label='validation')
 plt.xlabel('Epoch');plt.ylabel('MSE loss')
 plt.axvline(x = val_losses.index(min(val_losses)), color = 'r', linestyle='dashed', label = 'lowest validation error')
 plt.legend()
@@ -300,17 +311,17 @@ plt.figure()
 plt.plot(fut_plot1, label='validation')
 plt.plot(fut_plot2, label='future') #To DOOOOOOO
 plt.legend()
+plt.title('Validation with future predictions')
 
 
 plt.figure()
 plt.plot(pred_fut)
+plt.title('Future predictions only')
 
 plt.figure()
 plt.plot(pred[0])
-plt.figure()
-plt.plot(pred[0][:,0], label='test')
-# plt.plot(X_test_all, label='observation')
-plt.legend()
+plt.title('Prediction at fut=1')
+
 
 #plot results of best model
 y_hat_train=model(torch.tensor(features_train).float())
@@ -323,8 +334,9 @@ plot_predictions('Best Model', X_test_all, y_hat_train, y_hat_val, window_size, 
 plt.figure()
 for i, p in enumerate(pred):
     if i%5==0:
-        plt.plot(p, label=f'Prediciton {i}')
+        plt.plot(p, label=f'Prediction {i}')
         plt.legend()
+plt.title('Best model predictions')
     
 # # features_test, labels_test = timeseries_dataset_from_array(X_test_sc, window_size, horizon, label_indices=[0])
 # # y_pred_test=model(torch.tensor(features_test).float())
