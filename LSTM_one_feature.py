@@ -57,7 +57,7 @@ class LSTM(nn.Module):
             x_shifted=torch.zeros(x.size())
             x_shifted[:,:-1,:]=x[:,1:,:]
             #add y_hat as newest observation
-            x_shifted[:,-1,:]=out #alternativ: x_shifte[:,-1:,:]
+            x_shifted[:,-1,:]=out #alternativ: x_shifted[:,-1:,:]
             #create future predictions if future_pred>0 is passed
             #same as forward step above, using last output/prediction as input            
             output, (hn, cn)=self.lstm1(x_shifted, (h_0, c_0))
@@ -242,7 +242,7 @@ dataset_val, data_loader_val=get_dataloader(features_val, labels_val, batch_size
 
 '''LSTM training + Set-Up'''
 #defintion of hyperparameters
-num_epochs = 10 #1000 epochs
+num_epochs = 2 #1000 epochs
 learning_rate = 0.001 #0.001 lr
 
 input_size = 1 #number of features
@@ -294,7 +294,6 @@ model.eval()
 future=50
 pred=model(torch.tensor(features_val).float(), future_pred=future)
 
-
 pred=[rescale_data(p.detach(), train_sc, nr_features) for p in pred]
 
 pred_fut=[]
@@ -333,11 +332,26 @@ plot_predictions('Best Model', X_test_all, y_hat_train, y_hat_val, window_size, 
 
 plt.figure()
 for i, p in enumerate(pred):
-    if i%5==0:
+    if i%10==0:
         plt.plot(p, label=f'Prediction {i}')
         plt.legend()
 plt.title('Best model predictions')
     
+plt.figure()
+for i in range(5):
+    plt.plot(pred[i], label=f'Pred {i}')
+plt.legend()
+    
+plt.figure()
+plt.plot(pred[9])
+plt.title('Prediction at fut=1')
+
+
+plt.figure()
+plt.plot(pred[0], label=f'Prediction 1')
+plt.plot(pred[9], label=f'Prediction 10')
+# plt.plot(pred[19], label=f'Prediction 20')
+
 # # features_test, labels_test = timeseries_dataset_from_array(X_test_sc, window_size, horizon, label_indices=[0])
 # # y_pred_test=model(torch.tensor(features_test).float())
 # # plot_predictions('', X_test_sc, y_pred_test, y_pred_val, 0, len(X_test_sc))
