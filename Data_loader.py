@@ -70,5 +70,18 @@ def get_prcp_data(SVK_datapath, DMI_datapath, join=False):
     else:    
         return df_SVK, df_DMI
 
+
+def get_test_data(stat_id, data_df):
+    '''get data for specific station (e.g. WL, precipitation), cropped to their actual timeframe
+    data_df: dataframe, timeseries data with  station_ids as column names'''
+    
+    X=data_df[[stat_id]]
+    
+    #make sure that only period in which sensor data is available is used
+    X=X[(X.index>X.first_valid_index())&(X.index<X.last_valid_index())]
+    #interpolate missing values
+    X.interpolate(inplace=True)
+    return X
+
 #prcp=get_prcp_data(r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\SVK', r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\DMI_Climate_Data_prcp', join=True)
 #SVK, DMI=get_prcp_data(r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\SVK', r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\DMI_Climate_Data_prcp')
