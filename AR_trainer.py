@@ -48,8 +48,8 @@ class Trainer():
             # train_gen=multi_window_train.data_generator(runendless = False)
             # val_gen=multi_window_val.data_generator(runendless = False)
             # Iterate over the batches of the dataset.
-            import pdb
-            pdb.set_trace()
+            # import pdb
+            # pdb.set_trace()
             self.model.train()
             train_losses = []; train_details = []
             for step, (x_batch_train, y_batch_train) in enumerate(data_loader_train):

@@ -20,7 +20,7 @@ from AR_trainer import Trainer
 
 windowsize=25
 horizon=1 #how many timesteps in the future do we want to predict
-epochs=2
+epochs=10
 batch_size=100 #number of batches that is processes at once
 
 #
@@ -72,8 +72,12 @@ features_train, labels_train = timeseries_dataset_from_array(X_train_sc, windows
 features_val, labels_val=timeseries_dataset_from_array(X_val_sc, windowsize, horizon, label_indices=[0]) 
 
 #get data_loader for all data, data_loader is an torch iterable to be able to iterate over batches
-dataset_train, data_loader_train = get_dataloader(features_train, labels_train, batch_size=batch_size)
-dataset_val, data_loader_val=get_dataloader(features_val, labels_val, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
+# dataset_train, data_loader_train = get_dataloader(features_train, labels_train, batch_size=batch_size)
+# dataset_val, data_loader_val=get_dataloader(features_val, labels_val, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
+
+#features and lables have to be identical in order to adopt Roland's code
+dataset_train, data_loader_train = get_dataloader(features_train, features_train, batch_size=batch_size)
+dataset_val, data_loader_val=get_dataloader(features_val, features_val, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
 
 
 #############################################################
@@ -88,11 +92,19 @@ if True:
 
 model.load_state_dict(torch.load(os.path.join(respath,'weights.pth')))
 
-# features_test, labels_test=timeseries_dataset_from_array(X_test_sc, len(X_test_sc)-horizon, horizon, label_indices=[0]) 
-# dataset_test, data_loader_test=get_dataloader(features_test, labels_test, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
-# # import pdb
-# # pdb.set_trace()
-# for step, (inputs,labels) in enumerate(data_loader_test):
-#     preds = model(inputs,labels).detach().numpy()
-#     plt.plot(labels[0,:,0])
-#     plt.plot(preds[0,:,0],color='red')
+features_test, labels_test=timeseries_dataset_from_array(X_test_sc, len(X_test_sc)-horizon, horizon, label_indices=[0]) 
+dataset_test, data_loader_test=get_dataloader(features_test, features_test, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
+
+plt.figure()
+for step, (inputs,labels) in enumerate(data_loader_test):
+    preds = model(inputs,labels).detach().numpy()
+    # import pdb
+    # pdb.set_trace()
+    # unscale data
+    preds=train_sc.inverse_transform(preds[0,:,:])
+    labels=train_sc.inverse_transform(labels[0,:,:].numpy())
+    plt.plot(labels,label='observation')
+    plt.plot(preds,color='red', label='prediction')
+plt.legend()
+
+
