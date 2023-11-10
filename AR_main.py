@@ -20,12 +20,16 @@ from AR_trainer import Trainer
 
 windowsize=25
 horizon=1 #how many timesteps in the future do we want to predict
-epochs=10
+epochs=30
 batch_size=100 #number of batches that is processes at once
 
 #
 respath='./results'
 if not os.path.exists(respath): os.makedirs(respath)
+
+#delete any existing losslog/files, to only save losses of current model run
+losslogpath=os.path.join(respath, 'losslog.csv')
+if os.path.exists(losslogpath): os.remove(losslogpath)
 
 #############################################
 #load data
@@ -77,7 +81,7 @@ features_val, labels_val=timeseries_dataset_from_array(X_val_sc, windowsize, hor
 
 #features and lables have to be identical in order to adopt Roland's code
 dataset_train, data_loader_train = get_dataloader(features_train, features_train, batch_size=batch_size)
-dataset_val, data_loader_val=get_dataloader(features_val, features_val, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
+dataset_val, data_loader_val=get_dataloader(features_val, features_val, batch_size=batch_size, shuffle=True) #shuffle =False, as it is the set for validation???
 
 
 #############################################################

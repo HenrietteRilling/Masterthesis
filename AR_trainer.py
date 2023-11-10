@@ -24,7 +24,8 @@ class Trainer():
         self.optimizer.zero_grad()
         #y needs to provided as input, but only the first value is used in each time step
         preds = self.model(x,y)
-        loss=self.loss_fn(preds, y)
+        #first prediction has to be excluded from loss calculation as it is initialised with the true value of y for each batch
+        loss=self.loss_fn(preds[:,1,:], y[:,1,:])
         loss.backward()
         self.optimizer.step()
         return loss.item()
@@ -41,7 +42,7 @@ class Trainer():
         best_val=startvalacc
         for epoch in range(self.epochs):
             ########
-            print("\nStart of epoch %d" % (epoch,))
+            print("\nStart of epoch %d" % (epoch))
             start_time = time.time()
             #initialize the data generators
             #To Do: possibly create Dataset class, that includes dataloader calling + windowing of data??
