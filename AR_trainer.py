@@ -25,7 +25,7 @@ class Trainer():
         #y needs to provided as input, but only the first value is used in each time step
         preds = self.model(x,y)
         #first prediction has to be excluded from loss calculation as it is initialised with the true value of y for each batch
-        loss=self.loss_fn(preds[:,1,:], y[:,1,:])
+        loss=self.loss_fn(preds[:,1:,:], y[:,1:,:])
         loss.backward()
         self.optimizer.step()
         return loss.item()

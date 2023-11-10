@@ -20,7 +20,7 @@ from AR_trainer import Trainer
 
 windowsize=25
 horizon=1 #how many timesteps in the future do we want to predict
-epochs=30
+epochs=2
 batch_size=100 #number of batches that is processes at once
 
 #
@@ -81,7 +81,7 @@ features_val, labels_val=timeseries_dataset_from_array(X_val_sc, windowsize, hor
 
 #features and lables have to be identical in order to adopt Roland's code
 dataset_train, data_loader_train = get_dataloader(features_train, features_train, batch_size=batch_size)
-dataset_val, data_loader_val=get_dataloader(features_val, features_val, batch_size=batch_size, shuffle=True) #shuffle =False, as it is the set for validation???
+dataset_val, data_loader_val=get_dataloader(features_val, features_val, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
 
 
 #############################################################
@@ -102,8 +102,6 @@ dataset_test, data_loader_test=get_dataloader(features_test, features_test, batc
 plt.figure()
 for step, (inputs,labels) in enumerate(data_loader_test):
     preds = model(inputs,labels).detach().numpy()
-    # import pdb
-    # pdb.set_trace()
     # unscale data
     preds=train_sc.inverse_transform(preds[0,:,:])
     labels=train_sc.inverse_transform(labels[0,:,:].numpy())

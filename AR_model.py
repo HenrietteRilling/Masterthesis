@@ -22,19 +22,16 @@ class samplemodel(torch.nn.Module):
     batchsize = inputs.shape[0]
     ############
     #initialize the first prediction from the labels
-    preds=labels[:,0,:]
+    preds=labels[:,1,:]
     result_tensor=torch.unsqueeze(preds,1)
     ############################
     #cycle through all time steps from 1 to windowsize, using the prediction from previous time step as input
-    n=1
-    while n<inputs.shape[1]:  
-        # import pdb
-        # pdb.set_trace()
+    n=0
+    while n<inputs.shape[1]-1: #-1 as for last prediciton there is no target to compare to 
         input_for_this_step = inputs[:,n,:]
         modelinput=torch.cat([input_for_this_step,preds],1)
         preds=self.model(modelinput)
         result_tensor=torch.cat([result_tensor,torch.unsqueeze(preds,1)],1)
         #
         n+=1
-    #
     return(result_tensor)
