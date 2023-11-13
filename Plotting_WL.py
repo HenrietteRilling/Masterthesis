@@ -6,41 +6,61 @@ Created on Tue Sep  5 08:20:43 2023
 """
 
 #import packages
-import os
-import glob 
-import csv
-import re #package for "regular expressions", used for searching, matching and manipulating text
-import datetime as dt
+
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 from bokeh.plotting import figure, show
 from bokeh.models import ColumnDataSource, DatetimeTickFormatter
 
 from Data_loader import get_WL_data
+from plot_utils import cm2inch
 
 
 
 def plot_water_level_subplot(df, rows, cols, id_dict, savepath=None):
     
-    fig, axes=plt.subplots(rows, cols, figsize=(12,8))
+    fig, axes=plt.subplots(rows, cols, figsize=(cm2inch(15, 20)), layout='constrained')
     
     for i, column in enumerate(df.columns):
         row=i//cols
         col=i%cols
         ax=axes[row, col]
-        ax.plot(df[column])
-        ax.set_title(f'{id_dict.get(column)}')
-        # Set shared x and y labels
-    fig.text(0.5, 0, 'Date', ha='center', fontsize=14)
-    fig.text(0, 0.5, 'Water level [m]', va='center', rotation='vertical', fontsize=14)
-#        ax.set_xlabel('Date'); ax.set_ylabel('Water level [m]')
+        ax.plot(df[column], color='blue')
+        ax.set_title(f'{id_dict.get(column)}', fontsize='xx-large')
+        ax.tick_params(axis='x', labelsize='x-large')
+        ax.tick_params(axis='y', labelsize='x-large')
+        
+        # Format x-axis ticks  of Højlund and Møllerup to show only years and not months
+        if id_dict.get(column) in ('Møllerup', 'Højlund'):
+            #set formatter to years
+            date_fmt = mdates.DateFormatter('%Y')
+            ax.xaxis.set_major_locator(mdates.YearLocator())
+            ax.xaxis.set_major_formatter(date_fmt)
+            ax.tick_params(axis='x', labelsize='x-large')
+            
+        #set global x-axis label
+        if id_dict.get(column) == 'Langå':
+            ax.set_xlabel('Date', fontsize='xx-large')
+
+        #set global y-axis label
+        if id_dict.get(column) == 'Højlund':
+            ax.set_ylabel('Water level [m]', fontsize='xx-large')
     
-    plt.tight_layout()
+    # Set shared x and y labels
+    # fig.text(0.5, 0, 'Date', ha='center', fontsize=14)
+    # fig.text(0, 0.5, 'Water level [m]', va='center', rotation='vertical', fontsize=14)
     
+
+ # Set xtick labels fontsize to 34
+
+    # Set ytick labels fontsize to 34
+    # plt.yticks(fontsize='medium')
+    #adjust the size of the figure window
+    plt.gcf().set_size_inches(cm2inch(50,30))
     if savepath:
-        plt.savefig(savepath, dpi=300)
+        plt.savefig(savepath, dpi=600)
         plt.close()
         
     else:
@@ -89,12 +109,13 @@ if __name__ == "__main__":
     rows=7
     cols=3
 #    plot_water_level_subplot(WL, rows, cols, station_id_to_name)
-    plot_water_level(WL[['211711']], station_id_to_name.get('211711'))
+    # plot_water_level(WL_wo_anom[['211711']], station_id_to_name.get('211711'))
 
 
 
-'''Plotting examples'''
-# plot_water_level_subplot(WL, rows, cols, station_id_to_name)
+    '''Plotting examples'''
+    savepth=r'C:\Users\henri\Documents\Universität\Masterthesis\Report\WL_all_stations.png'
+    plot_water_level_subplot(WL, rows, cols, station_id_to_name, savepath=savepth)
 
 # for col in WL.columns:
 #     plot_water_level(WL[[col]], station_id_to_name.get(col))

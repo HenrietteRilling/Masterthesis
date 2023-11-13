@@ -40,7 +40,7 @@ def get_WL_data(datapath):
     
     return WL, labels, station_name_to_id, station_id_to_name
 
-'''Function takes datapaht as input and returns preprocessed DataFrame with prcp data'''
+'''Function takes datapath as input and returns preprocessed DataFrame with prcp data'''
 
 def get_prcp_data(SVK_datapath, DMI_datapath, join=False):
     
