@@ -5,16 +5,17 @@ Created on Thu Nov  2 10:09:19 2023
 @author: Henriette
 """
 
-import os, sys
+import os
 import numpy as np
-import datetime, time
+import pandas as pd
+
 import torch
 import matplotlib.pyplot as plt
 #Set the number of CPU threads that PyTorch will use for parallel processing
 torch.set_num_threads(8)
 
 from Data_loader import get_WL_data, get_prcp_data, get_test_data
-from utils import scale_data, rescale_data, timeseries_dataset_from_array, get_dataloader
+from utils import scale_data, rescale_data_ffn, timeseries_dataset_from_array, get_dataloader
 from AR_model import samplemodel
 from AR_trainer import Trainer
 
@@ -54,8 +55,8 @@ X_WL=get_test_data(test_id, WL_wo_anom)
 X_prcp=get_test_data(test_prcp, prcp)
 
 #merge precipitation and WL data, select overlapping timeperiod
-# X=pd.concat([X_WL, X_prcp], axis=1).loc[X_WL.index.intersection(X_prcp.index)]
-X=X_WL 
+X=pd.concat([X_WL, X_prcp], axis=1).loc[X_WL.index.intersection(X_prcp.index)]
+# X=X_WL 
 
 #################################################
 #split data in 70% train, 20% val, 10% test
@@ -79,17 +80,17 @@ features_val, labels_val=timeseries_dataset_from_array(X_val_sc, windowsize, hor
 # dataset_train, data_loader_train = get_dataloader(features_train, labels_train, batch_size=batch_size)
 # dataset_val, data_loader_val=get_dataloader(features_val, labels_val, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
 
-#features and lables have to be identical in order to adopt Roland's code
-dataset_train, data_loader_train = get_dataloader(features_train, features_train, batch_size=batch_size)
-dataset_val, data_loader_val=get_dataloader(features_val, features_val, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
+#features and lables have to be identical (same periods of time) in order to adopt Roland's code, however, labels should contain only water level data
+dataset_train, data_loader_train = get_dataloader(features_train, features_train[:,:,:1], batch_size=batch_size)
+dataset_val, data_loader_val=get_dataloader(features_val, features_val[:,:,:1], batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
 
 
 #############################################################
 #set up an autregressive model - the autoregressive model loop is defined in AR_model.py. The class in there imports a neural network configuration that is defined inside AR_nn_models.py, this is a feed forward model with 2 layers of 25 neurons
-model=samplemodel(2, 25)
-
+model=samplemodel(4, 25) #4 = number of inputs in the linear layer, 4 as we input 2 timesteps a 2 features
+tr=False
 ###################
-if True:
+if tr==True:
     trainer = Trainer(model,epochs,respath)
     trainer.fit(data_loader_train,data_loader_val)
 ###################
@@ -97,14 +98,17 @@ if True:
 model.load_state_dict(torch.load(os.path.join(respath,'weights.pth')))
 
 features_test, labels_test=timeseries_dataset_from_array(X_test_sc, len(X_test_sc)-horizon, horizon, label_indices=[0]) 
-dataset_test, data_loader_test=get_dataloader(features_test, features_test, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
+dataset_test, data_loader_test=get_dataloader(features_test, features_test[:,:,:1], batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
 
 plt.figure()
 for step, (inputs,labels) in enumerate(data_loader_test):
     preds = model(inputs,labels).detach().numpy()
     # unscale data
-    preds=train_sc.inverse_transform(preds[0,:,:])
-    labels=train_sc.inverse_transform(labels[0,:,:].numpy())
+    preds=rescale_data_ffn(preds, train_sc, 2)
+    labels=rescale_data_ffn(labels.numpy(), train_sc, 2)
+    #with one input feature: 
+    # preds=train_sc.inverse_transform(preds[0,:,:])
+    # labels=train_sc.inverse_transform(labels[0,:,:].numpy())
     plt.plot(labels,label='observation')
     plt.plot(preds,color='red', label='prediction')
 plt.legend()

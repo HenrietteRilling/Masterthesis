@@ -27,9 +27,13 @@ class samplemodel(torch.nn.Module):
     ############################
     #cycle through all time steps from 1 to windowsize, using the prediction from previous time step as input
     n=0
+    # import pdb
+    # pdb.set_trace()
     while n<inputs.shape[1]-1: #-1 as for last prediciton there is no target to compare to 
         input_for_this_step = inputs[:,n,:]
-        modelinput=torch.cat([input_for_this_step,preds],1)
+        #add prcp observation of the respective timestep as input
+        preds_for_this_step=torch.cat([preds, inputs[:,n+1,1:]],1)
+        modelinput=torch.cat([input_for_this_step,preds_for_this_step],1)
         preds=self.model(modelinput)
         result_tensor=torch.cat([result_tensor,torch.unsqueeze(preds,1)],1)
         #

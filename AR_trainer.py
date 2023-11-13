@@ -44,10 +44,6 @@ class Trainer():
             ########
             print("\nStart of epoch %d" % (epoch))
             start_time = time.time()
-            #initialize the data generators
-            #To Do: possibly create Dataset class, that includes dataloader calling + windowing of data??
-            # train_gen=multi_window_train.data_generator(runendless = False)
-            # val_gen=multi_window_val.data_generator(runendless = False)
             # Iterate over the batches of the dataset.
             # import pdb
             # pdb.set_trace()
