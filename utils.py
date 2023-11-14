@@ -19,7 +19,7 @@ def rescale_data(data, scaler, input_dim):
     #input data has one dimension, output data 2, scaler expects the same dimensions as the input data therefore, we need to rescale
     data_reshaped=np.zeros((data.shape[0],input_dim))
     #assing data to help array, reshaping tensor form dimensions (batchsize, 1,1) to (batchsize)
-    data_reshaped[:,0]=data[:,0,0].numpy() #for tensor: add .numpy()    
+    data_reshaped[:,0]=data[:,0,0].numpy() #for tensor: add .numpy()  
     rescaled_data=scaler.inverse_transform(data_reshaped)
     return rescaled_data
 # Eventually return only WL data of interest rescaled_data[:,0]
@@ -27,11 +27,15 @@ def rescale_data(data, scaler, input_dim):
 
 #unscale for feed forwards network, output is has different sizes
 def rescale_data_ffn(data, scaler, input_dim):
+    # import pdb
+    # pdb.set_trace()
     #input data has one dimension, output data 2, scaler expects the same dimensions as the input data therefore, we need to rescale
     data_reshaped=np.zeros((data.shape[1],input_dim))
     #assing data to help array, reshaping tensor form dimensions (batchsize, 1,1) to (batchsize)
     data_reshaped[:,0]=data[0,:,0]    
+    nanidx=np.isnan(data_reshaped)
     rescaled_data=scaler.inverse_transform(data_reshaped)
+    rescaled_data[nanidx]=np.nan
     return rescaled_data[:,0]
 # Eventually return only WL data of interest rescaled_data[:,0]
 
