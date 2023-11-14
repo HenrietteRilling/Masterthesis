@@ -19,20 +19,25 @@ class samplemodel(torch.nn.Module):
 
 
   def forward(self, inputs,labels):
-    batchsize = inputs.shape[0]
     ############
     #initialize the first prediction from the labels
     preds=labels[:,1,:]
     result_tensor=torch.unsqueeze(preds,1)
-    ############################
+        ############################
     #cycle through all time steps from 1 to windowsize, using the prediction from previous time step as input
     n=0
     # import pdb
     # pdb.set_trace()
     while n<inputs.shape[1]-1: #-1 as for last prediciton there is no target to compare to 
-        input_for_this_step = inputs[:,n,:]
+        input_for_this_step = inputs[:,n,:]          
         #add prcp observation of the respective timestep as input
         preds_for_this_step=torch.cat([preds, inputs[:,n+1,1:]],1)
+        
+        #check for missing values  in the input
+        nan_mask=torch.isnan(input_for_this_step)
+        if torch.any(nan_mask):
+            #Replace missing values with predictions from timestep before
+            input_for_this_step[nan_mask]=preds_for_this_step[nan_mask]        
         modelinput=torch.cat([input_for_this_step,preds_for_this_step],1)
         preds=self.model(modelinput)
         result_tensor=torch.cat([result_tensor,torch.unsqueeze(preds,1)],1)

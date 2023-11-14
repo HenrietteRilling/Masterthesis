@@ -13,11 +13,28 @@ import torch
 import matplotlib.pyplot as plt
 #Set the number of CPU threads that PyTorch will use for parallel processing
 torch.set_num_threads(8)
+from datetime import datetime
 
 from Data_loader import get_WL_data, get_prcp_data, get_test_data
 from utils import scale_data, rescale_data_ffn, timeseries_dataset_from_array, get_dataloader
+from plot_utils import datetime_xaxis
 from AR_model import samplemodel
 from AR_trainer import Trainer
+
+def generate_gaps(data, number):
+    size=int(number*len(data))
+    gapidx=np.random.randint(len(data),size=size)
+    data[gapidx,0]=np.nan
+    return data  
+    
+def generate_gaps_features(data, number):
+    #number of gaps relative to the length of the data
+    no_of_gaps=int(number*len(data[0,:,0]))
+    #choose randomly indexes where a gap will be created, np.choice is used as np.random.randint samples with replacement
+    gapidx=np.random.choice(np.arange(0, len(data[0,:,0])),no_of_gaps,replace=False)  
+    #replace values at chosen timesteps with nans
+    data[:,gapidx,0]=np.nan
+    return data
 
 windowsize=25
 horizon=1 #how many timesteps in the future do we want to predict
@@ -70,6 +87,13 @@ X_train_sc, train_sc = scale_data(X_train)
 X_val_sc = train_sc.transform(X_val)
 X_test_sc = train_sc.transform(X_test)
 
+#####################################################
+#introduce artificial gaps in WL data
+
+# X_train_sc=generate_gaps(X_train_sc, 0.1)
+# X_val_sc=generate_gaps(X_val_sc, 0.1)
+# X_test_sc=generate_gaps(X_test_sc, 0.1)
+
 ##########################################
 #batch data
 #get input and targets in batches with 10 timesteps input and predict the next timestep t+1, prcp data is only important for input, therefore label
@@ -88,29 +112,59 @@ dataset_val, data_loader_val=get_dataloader(features_val, features_val[:,:,:1], 
 #############################################################
 #set up an autregressive model - the autoregressive model loop is defined in AR_model.py. The class in there imports a neural network configuration that is defined inside AR_nn_models.py, this is a feed forward model with 2 layers of 25 neurons
 model=samplemodel(4, 25) #4 = number of inputs in the linear layer, 4 as we input 2 timesteps a 2 features
-tr=False
+tr=True
 ###################
 if tr==True:
     trainer = Trainer(model,epochs,respath)
     trainer.fit(data_loader_train,data_loader_val)
 ###################
 
+
+#load weights of best model
 model.load_state_dict(torch.load(os.path.join(respath,'weights.pth')))
-
+#create test features and label
 features_test, labels_test=timeseries_dataset_from_array(X_test_sc, len(X_test_sc)-horizon, horizon, label_indices=[0]) 
-dataset_test, data_loader_test=get_dataloader(features_test, features_test[:,:,:1], batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
 
-plt.figure()
-for step, (inputs,labels) in enumerate(data_loader_test):
-    preds = model(inputs,labels).detach().numpy()
-    # unscale data
-    preds=rescale_data_ffn(preds, train_sc, 2)
-    labels=rescale_data_ffn(labels.numpy(), train_sc, 2)
-    #with one input feature: 
-    # preds=train_sc.inverse_transform(preds[0,:,:])
-    # labels=train_sc.inverse_transform(labels[0,:,:].numpy())
-    plt.plot(labels,label='observation')
-    plt.plot(preds,color='red', label='prediction')
-plt.legend()
+gap=False
 
+if gap:   
+    # create gaps in features (only WL not rain)
+    features_test_gaps=generate_gaps_features(features_test.copy(), 0.1)
+    #create dataloader with gaps in features, but not in labels
+    dataset_test, data_loader_test=get_dataloader(features_test_gaps, features_test[:,:,:1], batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
 
+    #toDo fix scaling
+    plt.figure()
+    for step, (inputs,labels) in enumerate(data_loader_test):
+        print(np.isnan(inputs).sum())
+        plt.plot(labels[0,:,0], color='cyan',label='observation')
+        plt.plot(inputs[0,:,0], color='blue' ,label='observations with artifical gaps')
+        preds = model(inputs,labels).detach().numpy()
+        plt.plot(preds[0,:,0], color='red' ,label='prediction')
+
+    plt.legend()
+    plt.xlabel('Date')
+    plt.ylabel('Water level (scaled)')
+
+else:
+    dataset_test, data_loader_test=get_dataloader(features_test, features_test[:,:,:1], batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
+    
+    plt.figure()
+    for step, (inputs,labels) in enumerate(data_loader_test):
+        preds = model(inputs,labels).detach().numpy()
+        # unscale data
+        preds=rescale_data_ffn(preds, train_sc, 2)
+        labels=rescale_data_ffn(labels.numpy(), train_sc, 2)
+        #with one input feature: 
+        # preds=train_sc.inverse_transform(preds[0,:,:])
+        # labels=train_sc.inverse_transform(labels[0,:,:].numpy())
+        #plot actual dates on x-axis instead of numbers
+        # date_strings=datetime_xaxis(datetime(2022, 1, 1), datetime(2022, 12, 31))
+        # plt.xticks(range(len(date_strings)), date_strings, rotation=45, ha='right', fontsize=8)
+
+        plt.plot(labels,label='observation')
+        plt.plot(preds,color='red', label='prediction')
+    plt.legend()
+    plt.xlabel('Date')
+    plt.ylabel('Water level [m]')
+    
