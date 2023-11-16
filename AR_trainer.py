@@ -23,20 +23,19 @@ class Trainer():
     def _train_step(self, x, y):
         self.optimizer.zero_grad()
         #y needs to provided as input, but only the first value is used in each time step
-        preds = self.model(x)
+        preds = self.model(x, y)
         # import pdb
         # pdb.set_trace()
-        #first prediction has to be excluded from loss calculation as it is initialised with the true value of y for each batch
-        #first 2 values from y have to be excluded as we predict the target 2 timesteps ahead
-        loss=self.loss_fn(preds[:,1:-1,:], y[:,2:,:])
+        #y includes precipitation, has to be excluded for loss calculation
+        loss=self.loss_fn(preds, y[:,:,:1])
         loss.backward()
         self.optimizer.step()
         return loss.item()
         
     def _test_step(self, x, y):
         with torch.no_grad():
-            preds= self.model(x)
-            loss=self.loss_fn(preds[:,1:-1,:], y[:,2:,:])
+            preds= self.model(x, y)
+            loss=self.loss_fn(preds, y[:,:,:1])
         return loss.item()
     
 

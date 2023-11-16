@@ -18,28 +18,30 @@ class samplemodel(torch.nn.Module):
     self.ARpar = torch.nn.Parameter(torch.tensor(0,dtype=torch.float32))
     
   
-  def forward(self, inputs):
-      #initialize the first prediction from the labels
-      preds=inputs[:,1,:1]
-      result_tensor=torch.unsqueeze(preds,1)
-          ############################
-      #cycle through all time steps from 1 to windowsize-1, using the prediction from previous time step as input
+  def forward(self, inputs, labels):
+      #generate first prediciton from the input 
+      preds=self.model(inputs)
+      #initialize first prediction
+      result_tensor=torch.unsqueeze(preds[:,-1,:],1)
+
+      ############################
+      #cycle through all time steps up until the maximal gap length/prediction horizon feeding predictions back
       n=0
-      # import pdb
-      # pdb.set_trace()
-      while n<inputs.shape[1]-1: #-1 as for last prediciton there is no target to compare to 
-          input_for_this_step = inputs[:,n,:]          
+      #import pdb
+      #pdb.set_trace()
+      while n<labels.shape[1]-1: #-1 as for last prediction there is no more precipitation value in the features 
+          input_for_this_step = inputs[:,1:,:]
           #add prcp observation of the respective timestep as input, prcp is "stored in the input
-          preds_for_this_step=torch.cat([preds, inputs[:,n+1,1:]],1)
-        
+          preds_for_this_step=torch.cat([preds[:,-1:,:], torch.unsqueeze(labels[:,n,1:],1)],2)
           #check for missing values  in the input
           nan_mask=torch.isnan(input_for_this_step)
           if torch.any(nan_mask):
               #Replace missing values with predictions from timestep before
-              input_for_this_step[nan_mask]=preds_for_this_step[nan_mask]        
+              input_for_this_step[nan_mask]=preds_for_this_step[nan_mask]  
+          #concat observation and predictions
           modelinput=torch.cat([input_for_this_step,preds_for_this_step],1)
           preds=self.model(modelinput)
-          result_tensor=torch.cat([result_tensor,torch.unsqueeze(preds,1)],1)
+          result_tensor=torch.cat([result_tensor,torch.unsqueeze(preds[:,-1,:],1)],1)
           #
           n+=1
       return(result_tensor)     

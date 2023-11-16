@@ -16,7 +16,7 @@ torch.set_num_threads(8)
 from datetime import datetime
 
 from Data_loader import get_WL_data, get_prcp_data, get_test_data
-from utils import scale_data, rescale_data_ffn, timeseries_dataset_from_array, get_dataloader
+from utils import scale_data, rescale_data, rescale_data_ffn, timeseries_dataset_from_array, get_dataloader
 from plot_utils import datetime_xaxis
 from AR_model import samplemodel
 from AR_trainer import Trainer
@@ -36,10 +36,11 @@ def generate_gaps_features(data, number):
     data[:,gapidx,0]=np.nan
     return data
 
-windowsize=25
+windowsize=10
 horizon=1 #how many timesteps in the future do we want to predict
+max_gap_length=1
 epochs=10
-batch_size=100 #number of batches that is processes at once 
+batch_size=100 #number of batches that is processed at once 
 #
 respath='./results'
 if not os.path.exists(respath): os.makedirs(respath)
@@ -95,22 +96,24 @@ X_test_sc = train_sc.transform(X_test)
 
 ##########################################
 #batch data
-#get input and targets in batches with 10 timesteps input and predict the next timestep t+1, prcp data is only important for input, therefore label
-features_train, labels_train = timeseries_dataset_from_array(X_train_sc, windowsize, horizon, label_indices=[0])
-features_val, labels_val=timeseries_dataset_from_array(X_val_sc, windowsize, horizon, label_indices=[0]) 
+#get input and targets in batches with 10 timesteps input and predict the next timestep t+1, prcp data is needed in the target for feeding back predictions
+#we feed predictions back in case of gaps, therefore we need a to extend the target by the maximum gap length for training
+features_train, labels_train = timeseries_dataset_from_array(X_train_sc, windowsize, horizon+max_gap_length)
+features_val, labels_val=timeseries_dataset_from_array(X_val_sc, windowsize, horizon+max_gap_length) 
 
 #get data_loader for all data, data_loader is an torch iterable to be able to iterate over batches
 # dataset_train, data_loader_train = get_dataloader(features_train, labels_train, batch_size=batch_size)
 # dataset_val, data_loader_val=get_dataloader(features_val, labels_val, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
 
 #features and lables have to be identical (same periods of time) in order to adopt Roland's code, however, labels should contain only water level data
-dataset_train, data_loader_train = get_dataloader(features_train, features_train[:,:,:1], batch_size=batch_size)
-dataset_val, data_loader_val=get_dataloader(features_val, features_val[:,:,:1], batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
+
+dataset_train, data_loader_train = get_dataloader(features_train, labels_train, batch_size=batch_size)
+dataset_val, data_loader_val=get_dataloader(features_val, labels_val, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
 
 
 #############################################################
 #set up an autregressive model - the autoregressive model loop is defined in AR_model.py. The class in there imports a neural network configuration that is defined inside AR_nn_models.py, this is a feed forward model with 2 layers of 25 neurons
-model=samplemodel(4, 25) #4 = number of inputs in the linear layer, 3 as we input 2 timesteps a 2 features
+model=samplemodel(features_train.shape[-1], 25) #4 = number of inputs in the linear layer, 3 as we input 2 timesteps a 2 features
 tr=True
 ###################
 if tr==True:
@@ -122,9 +125,9 @@ if tr==True:
 #load weights of best model
 model.load_state_dict(torch.load(os.path.join(respath,'weights.pth')))
 #create test features and label
-features_test, labels_test=timeseries_dataset_from_array(X_test_sc, len(X_test_sc)-horizon, horizon, label_indices=[0]) 
+features_test, labels_test=timeseries_dataset_from_array(X_test_sc, windowsize, horizon+max_gap_length) 
 
-gap=True
+gap=False
 
 if gap:   
     # create gaps in features (only WL not rain)
@@ -139,6 +142,7 @@ if gap:
         plt.plot(labels[0,:,0], color='cyan',label='observation')
         plt.plot(inputs[0,:,0], color='blue' ,label='observations with artifical gaps')
         preds = model(inputs).detach().numpy()
+        preds=np.concatenate((np.full((1,1,1),np.nan), preds), axis=1)
         plt.plot(preds[0,:,0], color='red' ,label='prediction')
 
     plt.legend()
@@ -146,24 +150,43 @@ if gap:
     plt.ylabel('Water level (scaled)')
 
 else:
-    dataset_test, data_loader_test=get_dataloader(features_test, features_test[:,:,:1], batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
-    
-    plt.figure()
+    dataset_test, data_loader_test=get_dataloader(features_test, labels_test, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
+    #initialise arrays for storing predictions
+    test_preds1=np.zeros(0)
+    test_preds2=np.zeros(0)
     for step, (inputs,labels) in enumerate(data_loader_test):
-        preds = model(inputs).detach().numpy()
-        # unscale data
-        preds=rescale_data_ffn(preds, train_sc, 2)
-        labels=rescale_data_ffn(labels.numpy(), train_sc, 2)
-        #with one input feature: 
-        # preds=train_sc.inverse_transform(preds[0,:,:])
-        # labels=train_sc.inverse_transform(labels[0,:,:].numpy())
-        #plot actual dates on x-axis instead of numbers
-        # date_strings=datetime_xaxis(datetime(2022, 1, 1), datetime(2022, 12, 31))
-        # plt.xticks(range(len(date_strings)), date_strings, rotation=45, ha='right', fontsize=8)
+        preds = model(inputs, labels).detach().numpy()
+        # unscale and save data, first prediction based on observations
+        test_preds1=np.append(test_preds1, rescale_data(preds[:,:1,:], train_sc, 2)[:,0])
+        #unscale and save data, predictions with one predicted timestep fed back
+        test_preds2=np.append(test_preds2, rescale_data(preds[:,1:,:], train_sc, 2)[:,0])
 
-        plt.plot(labels,label='observation')
-        plt.plot(preds,color='red', label='prediction')
-    plt.legend()
-    plt.xlabel('Date')
-    plt.ylabel('Water level [m]')
+#first prediction is made after windowsize
+plcholder1=np.zeros(windowsize+horizon)*np.nan
+plcholder2=np.zeros(windowsize+horizon+1)*np.nan
+test_preds1_plot=np.concatenate((plcholder1, test_preds1))
+test_preds2_plot=np.concatenate((plcholder2, test_preds2[:-1]))
+X_test['pred1']=test_preds1_plot
+X_test['pred2']=test_preds2_plot
+plt.figure()
+plt.plot(X_test[test_id],label='observation')
+plt.plot(X_test['pred1'], color='red', label='prediction')
+plt.plot(X_test['pred2'], color='green', label='prediction2')
+plt.legend()
+plt.xlabel('Date')
+plt.ylabel('Water level [m]')
+
+plcholder1=np.zeros(windowsize-1)*np.nan
+plcholder2=np.zeros(windowsize-1)*np.nan
+test_preds1_plot=np.concatenate((plcholder1, test_preds1, [np.nan, np.nan]))
+test_preds2_plot=np.concatenate((plcholder2, test_preds2, [np.nan, np.nan]))
+X_test['pred1']=test_preds1_plot
+X_test['pred2']=test_preds2_plot
+plt.figure()
+plt.plot(X_test[test_id],label='observation')
+plt.plot(X_test['pred1'], color='red', label='prediction')
+plt.plot(X_test['pred2'], color='green', label='prediction2')
+plt.legend()
+plt.xlabel('Date')
+plt.ylabel('Water level [m]')
     
