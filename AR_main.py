@@ -38,9 +38,8 @@ def generate_gaps_features(data, number):
 
 windowsize=25
 horizon=1 #how many timesteps in the future do we want to predict
-epochs=2
-batch_size=100 #number of batches that is processes at once
-
+epochs=10
+batch_size=100 #number of batches that is processes at once 
 #
 respath='./results'
 if not os.path.exists(respath): os.makedirs(respath)
@@ -111,7 +110,7 @@ dataset_val, data_loader_val=get_dataloader(features_val, features_val[:,:,:1], 
 
 #############################################################
 #set up an autregressive model - the autoregressive model loop is defined in AR_model.py. The class in there imports a neural network configuration that is defined inside AR_nn_models.py, this is a feed forward model with 2 layers of 25 neurons
-model=samplemodel(4, 25) #4 = number of inputs in the linear layer, 4 as we input 2 timesteps a 2 features
+model=samplemodel(4, 25) #4 = number of inputs in the linear layer, 3 as we input 2 timesteps a 2 features
 tr=True
 ###################
 if tr==True:
@@ -125,7 +124,7 @@ model.load_state_dict(torch.load(os.path.join(respath,'weights.pth')))
 #create test features and label
 features_test, labels_test=timeseries_dataset_from_array(X_test_sc, len(X_test_sc)-horizon, horizon, label_indices=[0]) 
 
-gap=False
+gap=True
 
 if gap:   
     # create gaps in features (only WL not rain)
@@ -139,7 +138,7 @@ if gap:
         print(np.isnan(inputs).sum())
         plt.plot(labels[0,:,0], color='cyan',label='observation')
         plt.plot(inputs[0,:,0], color='blue' ,label='observations with artifical gaps')
-        preds = model(inputs,labels).detach().numpy()
+        preds = model(inputs).detach().numpy()
         plt.plot(preds[0,:,0], color='red' ,label='prediction')
 
     plt.legend()
@@ -151,7 +150,7 @@ else:
     
     plt.figure()
     for step, (inputs,labels) in enumerate(data_loader_test):
-        preds = model(inputs,labels).detach().numpy()
+        preds = model(inputs).detach().numpy()
         # unscale data
         preds=rescale_data_ffn(preds, train_sc, 2)
         labels=rescale_data_ffn(labels.numpy(), train_sc, 2)
