@@ -36,7 +36,7 @@ def generate_gaps_features(data, number):
     data[:,gapidx,0]=np.nan
     return data
 
-windowsize=20
+windowsize=100
 horizon=10 #how many timesteps in the future do we want to predict
 max_gap_length=0
 epochs=10
@@ -121,65 +121,36 @@ if tr==True:
     trainer.fit(data_loader_train,data_loader_val)
 ###################
 
+###################################################################
+###################### Testing
+
 
 #load weights of best model
 model.load_state_dict(torch.load(os.path.join(respath,'weights.pth')))
 #create test features and label
 features_test, labels_test=timeseries_dataset_from_array(X_test_sc, windowsize, horizon+max_gap_length) 
 
-gap=False
-
-if gap:   
-    # create gaps in features (only WL not rain)
-    features_test_gaps=generate_gaps_features(features_test.copy(), 0.1)
-    #create dataloader with gaps in features, but not in labels
-    dataset_test, data_loader_test=get_dataloader(features_test_gaps, features_test[:,:,:1], batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
-
-    #toDo fix scaling
-    plt.figure()
-    for step, (inputs,labels) in enumerate(data_loader_test):
-        print(np.isnan(inputs).sum())
-        plt.plot(labels[0,:,0], color='cyan',label='observation')
-        plt.plot(inputs[0,:,0], color='blue' ,label='observations with artifical gaps')
-        preds = model(inputs).detach().numpy()
-        preds=np.concatenate((np.full((1,1,1),np.nan), preds), axis=1)
-        plt.plot(preds[0,:,0], color='red' ,label='prediction')
-
-    plt.legend()
-    plt.xlabel('Date')
-    plt.ylabel('Water level (scaled)')
-
-else:
-    dataset_test, data_loader_test=get_dataloader(features_test, labels_test, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
-    #initialise arrays for storing predictions
-    test_preds1=np.zeros(0)
-    test_preds2=np.zeros(0)
-    for step, (inputs,labels) in enumerate(data_loader_test):
-        preds = model(inputs, labels).detach().numpy()
-        # unscale and save data, first prediction based on observations
-        test_preds1=np.append(test_preds1, rescale_data(preds[:,:1,:], train_sc, 2)[:,0])
-        #unscale and save data, predictions with one predicted timestep fed back
-        test_preds2=np.append(test_preds2, rescale_data(preds[:,1:,:], train_sc, 2)[:,0])
-
-
+#generate predictions based on test set
 preds_test=model(torch.tensor(features_test).float(), torch.tensor(labels_test).float())
-# 
 
-
+#remove last dimension from the predictions such that consecutive time steps are in one array
 preds_TOP_unsc=np.squeeze(preds_test.detach().numpy(), axis=2)
 
+#plot predictions starting from last observation (=Time of prediction, TOP)
 for i in np.arange(0,1001, 100):
     plt.figure()
+    #add nans before TOP
     plot_TOP_preds=np.concatenate((np.full(windowsize, np.nan),  preds_TOP_unsc[i]))
-    plot_TOP_obs=np.concatenate((X_test_sc[:windowsize,0], np.full(horizon, np.nan)))
+    # plot_TOP_obs=np.concatenate((X_test_sc[:windowsize,0], np.full(horizon, np.nan)))
     plt.plot(plot_TOP_preds, label='prediction', linestyle='None', marker='.')
     plt.plot(X_test_sc[i:i+windowsize+horizon,0], label='observation', linestyle='None', marker='.')
+    #Plot vertical line highlighting TOP
     plt.axvline(x=windowsize-1, color='black', linestyle='--', label='TOP')
     plt.legend()
 
 
 
-plt.figure()
+# plt.figure()
 # plt.plot(X_test_sc[:,0], label='observation')
 # plt.plot(preds_test[:,0,0].detach().numpy(), label='prediction')
 # plt.legend()
@@ -235,3 +206,38 @@ plt.figure()
 # plt.xlabel('Date')
 # plt.ylabel('Water level [m]')
     
+
+##########################Gap study#################
+# gap=False
+
+# if gap:   
+#     # create gaps in features (only WL not rain)
+#     features_test_gaps=generate_gaps_features(features_test.copy(), 0.1)
+#     #create dataloader with gaps in features, but not in labels
+#     dataset_test, data_loader_test=get_dataloader(features_test_gaps, features_test[:,:,:1], batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
+
+#     #toDo fix scaling
+#     plt.figure()
+#     for step, (inputs,labels) in enumerate(data_loader_test):
+#         print(np.isnan(inputs).sum())
+#         plt.plot(labels[0,:,0], color='cyan',label='observation')
+#         plt.plot(inputs[0,:,0], color='blue' ,label='observations with artifical gaps')
+#         preds = model(inputs).detach().numpy()
+#         preds=np.concatenate((np.full((1,1,1),np.nan), preds), axis=1)
+#         plt.plot(preds[0,:,0], color='red' ,label='prediction')
+
+#     plt.legend()
+#     plt.xlabel('Date')
+#     plt.ylabel('Water level (scaled)')
+
+# else:
+#     dataset_test, data_loader_test=get_dataloader(features_test, labels_test, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
+#     #initialise arrays for storing predictions
+#     test_preds1=np.zeros(0)
+#     test_preds2=np.zeros(0)
+#     for step, (inputs,labels) in enumerate(data_loader_test):
+#         preds = model(inputs, labels).detach().numpy()
+#         # unscale and save data, first prediction based on observations
+#         test_preds1=np.append(test_preds1, rescale_data(preds[:,:1,:], train_sc, 2)[:,0])
+#         #unscale and save data, predictions with one predicted timestep fed back
+#         test_preds2=np.append(test_preds2, rescale_data(preds[:,1:,:], train_sc, 2)[:,0])
