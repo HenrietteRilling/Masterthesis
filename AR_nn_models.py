@@ -18,7 +18,7 @@ class make_model_simple(torch.nn.Module):
         
         
     def forward(self, x):
-        #say how the model layers will be appliied
+        #say how the model layers will be applied
         x = self.linear1(x)
         x = self.act(x)
         x = self.linear2(x)
