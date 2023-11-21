@@ -19,32 +19,74 @@ class samplemodel(torch.nn.Module):
     
   
   def forward(self, inputs, labels):
-      # import pdb
-      # pdb.set_trace()
-      #generate first prediciton from the input
-      preds=self.model(inputs)
-      #initialize first prediction, we only take the last value as it is the next timestep in the future
-      result_tensor=torch.unsqueeze(preds[:,-1,:],1)
+  
+      ###########################Autoregressive loop###################
+      ####cycle through all time steps from 1 to windowsize, using the prediction from previous time step as additional model input feature
+      
+      #initialize first prediction
+      init_pred=inputs[:,:1,0] #torch.Size([B, 1])
+      #add dimension to match shape of model predictions
+      result_tensor_AR=torch.unsqueeze(init_pred, 2) #torch.Size([B, 1, 1])
+      ############Note: it's maybe possible to drop unsqueezing, but then adjustment of loss calculation necessary
+      t=1
+      while t <inputs.size(1):
+          #get features for current timestep t
+          input_for_this_AR_step=inputs[:,t,:] #torch.Size([B, 2])
+          #add prediction from timestep t-1 as input feature
+          modelinput=torch.cat((input_for_this_AR_step, result_tensor_AR[:,-1,:]), 1) #torch.Size([B, 3])
+          #generate new prediction for t+1
+          preds=self.model(modelinput) #torch.Size([B, 1])
+          #save prediction
+          result_tensor_AR = torch.cat((result_tensor_AR, torch.unsqueeze(preds, 1)),1)
+          t+=1
+          
+      ##########################Future predictions#########################
+      
+      if labels.shape[1]>1:
+          #initialize with last prediction from AR
+          result_tensor_future=result_tensor_AR[:,-1:,:] #torch.Size([B,1,1])
+          n=0
+          
+          #create as many predictions as defined in horizon (len of feature sequence), -1 as for last prediction there is no more precipitation value in the features
+          while n<labels.shape[1]-1:
+              input_for_this_fut_step=inputs[:,(n+1):,:]
+              preds_for_this_fut_step=torch.cat([result_tensor_future[:,-(n+1):,:], labels[:,:n+1,1:]],2)
+              modelinput_fut=torch.cat([input_for_this_fut_step,preds_for_this_fut_step],1)
+              #Add predictions from AR loop as additional model input feature TODO: should AR also be updated?????
+              modelinput_fut=torch.cat([modelinput_fut, result_tensor_AR],2)
+              preds_fut=self.model(modelinput_fut)
+              result_tensor_future=torch.cat([result_tensor_future,torch.unsqueeze(preds_fut[:,-1,:],1)],1)
+              
+              n+=1
+          return result_tensor_future
+              
+        
+###old forward loop for model without AR but with future predictions
 
-      ############################
-      #cycle through all time steps up until the maximal gap length/prediction horizon feeding predictions back
-      n=0
-      while n<labels.shape[1]-1: #-1 as for last prediction there is no more precipitation value in the features 
-          input_for_this_step = inputs[:,1:,:]
-          #add prcp observation of the respective timestep as input, prcp is "stored in the labels, we need to add a dimesion after extracting values
-          preds_for_this_step=torch.cat([preds[:,-1:,:], torch.unsqueeze(labels[:,n,1:],1)],2)
-          #check for missing values  in the input
-          nan_mask=torch.isnan(input_for_this_step)
-          if torch.any(nan_mask):
-              #Replace missing values with predictions from timestep before
-              input_for_this_step[nan_mask]=preds_for_this_step[nan_mask]  
-          #concatenate observation and predictions
-          modelinput=torch.cat([input_for_this_step,preds_for_this_step],1)
-          #generate new prediction
-          preds=self.model(modelinput)
-          result_tensor=torch.cat([result_tensor,torch.unsqueeze(preds[:,-1,:],1)],1)
-          n+=1
-      return(result_tensor)     
+    # #generate first prediciton from the input
+    #   preds=self.model(inputs)
+    #   #initialize first prediction, we only take the last value as it is the next timestep in the future
+    #   result_tensor=torch.unsqueeze(preds[:,-1,:],1)
+
+    #   ############################
+    #   #cycle through all time steps up until the maximal gap length/prediction horizon feeding predictions back
+    #   n=0
+    #   while n<labels.shape[1]-1: #-1 as for last prediction there is no more precipitation value in the features 
+    #       input_for_this_step = inputs[:,1:,:]
+    #       #add prcp observation of the respective timestep as input, prcp is "stored in the labels, we need to add a dimesion after extracting values
+    #       preds_for_this_step=torch.cat([preds[:,-1:,:], torch.unsqueeze(labels[:,n,1:],1)],2)
+    #       #check for missing values  in the input
+    #       nan_mask=torch.isnan(input_for_this_step)
+    #       if torch.any(nan_mask):
+    #           #Replace missing values with predictions from timestep before
+    #           input_for_this_step[nan_mask]=preds_for_this_step[nan_mask]  
+    #       #concatenate observation and predictions
+    #       modelinput=torch.cat([input_for_this_step,preds_for_this_step],1)
+    #       #generate new prediction
+    #       preds=self.model(modelinput)
+    #       result_tensor=torch.cat([result_tensor,torch.unsqueeze(preds[:,-1,:],1)],1)
+    #       n+=1
+    #   return(result_tensor)     
   
   # #OLD forward function 
   # def forward(self, inputs,labels):
