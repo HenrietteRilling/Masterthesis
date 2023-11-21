@@ -36,9 +36,9 @@ def generate_gaps_features(data, number):
     data[:,gapidx,0]=np.nan
     return data
 
-windowsize=10
-horizon=1 #how many timesteps in the future do we want to predict
-max_gap_length=1
+windowsize=20
+horizon=10 #how many timesteps in the future do we want to predict
+max_gap_length=0
 epochs=10
 batch_size=100 #number of batches that is processed at once 
 #
@@ -161,32 +161,77 @@ else:
         #unscale and save data, predictions with one predicted timestep fed back
         test_preds2=np.append(test_preds2, rescale_data(preds[:,1:,:], train_sc, 2)[:,0])
 
-#first prediction is made after windowsize
-plcholder1=np.zeros(windowsize+horizon)*np.nan
-plcholder2=np.zeros(windowsize+horizon+1)*np.nan
-test_preds1_plot=np.concatenate((plcholder1, test_preds1))
-test_preds2_plot=np.concatenate((plcholder2, test_preds2[:-1]))
-X_test['pred1']=test_preds1_plot
-X_test['pred2']=test_preds2_plot
-plt.figure()
-plt.plot(X_test[test_id],label='observation')
-plt.plot(X_test['pred1'], color='red', label='prediction')
-plt.plot(X_test['pred2'], color='green', label='prediction2')
-plt.legend()
-plt.xlabel('Date')
-plt.ylabel('Water level [m]')
 
-plcholder1=np.zeros(windowsize-1)*np.nan
-plcholder2=np.zeros(windowsize-1)*np.nan
-test_preds1_plot=np.concatenate((plcholder1, test_preds1, [np.nan, np.nan]))
-test_preds2_plot=np.concatenate((plcholder2, test_preds2, [np.nan, np.nan]))
-X_test['pred1']=test_preds1_plot
-X_test['pred2']=test_preds2_plot
+preds_test=model(torch.tensor(features_test).float(), torch.tensor(labels_test).float())
+# 
+
+
+preds_TOP_unsc=np.squeeze(preds_test.detach().numpy(), axis=2)
+
+for i in np.arange(0,1001, 100):
+    plt.figure()
+    plot_TOP_preds=np.concatenate((np.full(windowsize, np.nan),  preds_TOP_unsc[i]))
+    plot_TOP_obs=np.concatenate((X_test_sc[:windowsize,0], np.full(horizon, np.nan)))
+    plt.plot(plot_TOP_preds, label='prediction', linestyle='None', marker='.')
+    plt.plot(X_test_sc[i:i+windowsize+horizon,0], label='observation', linestyle='None', marker='.')
+    plt.axvline(x=windowsize-1, color='black', linestyle='--', label='TOP')
+    plt.legend()
+
+
+
 plt.figure()
-plt.plot(X_test[test_id],label='observation')
-plt.plot(X_test['pred1'], color='red', label='prediction')
-plt.plot(X_test['pred2'], color='green', label='prediction2')
-plt.legend()
-plt.xlabel('Date')
-plt.ylabel('Water level [m]')
+# plt.plot(X_test_sc[:,0], label='observation')
+# plt.plot(preds_test[:,0,0].detach().numpy(), label='prediction')
+# plt.legend()
+
+# preds_test_unscaled=preds_test.detach().numpy()
+# plcholder1=np.zeros(windowsize)*np.nan #for first prediction based on observations
+# plcholder2=np.zeros(windowsize+1)*np.nan #for second prediction
+# plcholder3=np.zeros(windowsize+2)*np.nan #for third prediction (current example h=3)
+
+# test_preds1_plot=np.concatenate((plcholder1,preds_test_unscaled[:,0,0], np.full(2, np.nan)))
+# test_preds2_plot=np.concatenate((plcholder2,preds_test_unscaled[:,1,0], np.full(1, np.nan)))
+# test_preds3_plot=np.concatenate((plcholder3,preds_test_unscaled[:,2,0]))
+
+# plt.figure()
+# plt.plot(X_test_sc[:,0], label='observation')
+# plt.plot(test_preds1_plot, label='prediction 1')
+# plt.plot(test_preds2_plot, label='prediction 2')
+# plt.plot(test_preds3_plot, label='prediction 3')
+# plt.legend()
+
+
+
+
+
+#test=np.concatenate((plcholder1, preds_test_unscaled))
+# #first prediction is made after windowsize
+# plcholder1=np.zeros(windowsize+horizon)*np.nan
+# plcholder2=np.zeros(windowsize+horizon+1)*np.nan
+# test_preds1_plot=np.concatenate((plcholder1, test_preds1))
+# test_preds2_plot=np.concatenate((plcholder2, test_preds2[:-1]))
+# X_test['pred1']=test_preds1_plot
+# X_test['pred2']=test_preds2_plot
+# plt.figure()
+# plt.plot(X_test[test_id],label='observation')
+# plt.plot(X_test['pred1'], color='red', label='prediction')
+# plt.plot(X_test['pred2'], color='green', label='prediction2')
+# plt.legend()
+# plt.xlabel('Date')
+# plt.ylabel('Water level [m]')
+
+# plcholder1=np.zeros(windowsize)*np.nan
+# plcholder2=np.zeros(windowsize)*np.nan
+# plcholder3=np.full(horizon, np.nan)
+# test_preds1_plot=np.concatenate((plcholder1, test_preds1, plcholder3))
+# test_preds2_plot=np.concatenate((plcholder2, test_preds2, plcholder3))
+# X_test['pred1']=test_preds1_plot
+# X_test['pred2']=test_preds2_plot
+# plt.figure()
+# plt.plot(X_test[test_id],label='observation')
+# plt.plot(X_test['pred1'], color='red', label='prediction')
+# plt.plot(X_test['pred2'], color='green', label='prediction2')
+# plt.legend()
+# plt.xlabel('Date')
+# plt.ylabel('Water level [m]')
     
