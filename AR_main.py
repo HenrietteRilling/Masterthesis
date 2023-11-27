@@ -18,7 +18,7 @@ from datetime import datetime
 from Data_loader import get_WL_data, get_prcp_data, get_test_data
 from utils import scale_data, rescale_data, rescale_data_ffn, timeseries_dataset_from_array, get_dataloader
 from plot_utils import datetime_xaxis
-from AR_model import samplemodel
+from AR_model import samplemodel, sampleLSTMmodel
 from AR_trainer import Trainer
 
 def generate_gaps(data, number):
@@ -36,10 +36,10 @@ def generate_gaps_features(data, number):
     data[:,gapidx,0]=np.nan
     return data
 
-windowsize=100
+windowsize=25
 horizon=10 #how many timesteps in the future do we want to predict
 max_gap_length=0
-epochs=10
+epochs=2
 batch_size=100 #number of batches that is processed at once 
 #
 respath='./results'
@@ -102,18 +102,13 @@ features_train, labels_train = timeseries_dataset_from_array(X_train_sc, windows
 features_val, labels_val=timeseries_dataset_from_array(X_val_sc, windowsize, horizon+max_gap_length) 
 
 #get data_loader for all data, data_loader is an torch iterable to be able to iterate over batches
-# dataset_train, data_loader_train = get_dataloader(features_train, labels_train, batch_size=batch_size)
-# dataset_val, data_loader_val=get_dataloader(features_val, labels_val, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
-
-#features and lables have to be identical (same periods of time) in order to adopt Roland's code, however, labels should contain only water level data
-
 dataset_train, data_loader_train = get_dataloader(features_train, labels_train, batch_size=batch_size)
 dataset_val, data_loader_val=get_dataloader(features_val, labels_val, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
 
 
 #############################################################
 #set up an autregressive model - the autoregressive model loop is defined in AR_model.py. The class in there imports a neural network configuration that is defined inside AR_nn_models.py, this is a feed forward model with 2 layers of 25 neurons
-model=samplemodel(features_train.shape[-1], 25) #4 = number of inputs in the linear layer, 3 as we input 2 timesteps a 2 features
+model=samplemodel(features_train.shape[-1]+1, 25) #number of input features, nr of neurons (nr of features +1 as model is AR: predictions are added as additional feature in forward step)
 tr=True
 ###################
 if tr==True:
@@ -127,6 +122,57 @@ if tr==True:
 
 #load weights of best model
 model.load_state_dict(torch.load(os.path.join(respath,'weights.pth')))
+#create test features and label
+features_test, labels_test=timeseries_dataset_from_array(X_test_sc, windowsize, horizon+max_gap_length) 
+
+#generate predictions based on test set
+preds_test=model(torch.tensor(features_test).float(), torch.tensor(labels_test).float())
+
+#remove last dimension from the predictions such that consecutive time steps are in one array
+preds_TOP_unsc=np.squeeze(preds_test.detach().numpy(), axis=2)
+
+#plot predictions starting from last observation (=Time of prediction, TOP)
+for i in np.arange(0,1001, 1000):
+    plt.figure()
+    #add nans before TOP
+    plot_TOP_preds=np.concatenate((np.full(windowsize, np.nan),  preds_TOP_unsc[i]))
+    # plot_TOP_obs=np.concatenate((X_test_sc[:windowsize,0], np.full(horizon, np.nan)))
+    plt.plot(plot_TOP_preds, label='prediction', linestyle='None', marker='.')
+    plt.plot(X_test_sc[i:i+windowsize+horizon,0], label='observation', linestyle='None', marker='.')
+    #Plot vertical line highlighting TOP
+    plt.axvline(x=windowsize-1, color='black', linestyle='--', label='TOP')
+    plt.legend()
+
+
+
+#############################################################
+#set up an autregressive LSTM model - the autoregressive model loop is defined in AR_model.py. The class in there imports a neural network configuration that is defined inside AR_nn_models.py, this is a feed forward model with 2 layers of 25 neurons
+respath2='./results_LSTM'
+if not os.path.exists(respath): os.makedirs(respath)
+
+#delete any existing losslog/files, to only save losses of current model run
+losslogpath=os.path.join(respath, 'losslog.csv')
+if os.path.exists(losslogpath): os.remove(losslogpath)
+
+input_size=features_train.shape[-1]+1
+hidden_size=2 
+num_layers=1
+model=sampleLSTMmodel(input_size, hidden_size, num_layers) #number of input features, nr of neurons (nr of features +1 as model is AR: predictions are added as additional feature in forward step)
+
+tr=True
+###################
+if tr==True:
+    trainer = Trainer(model,epochs,respath2)
+    trainer.fit(data_loader_train,data_loader_val)
+###################
+
+
+###################################################################
+###################### Testing
+
+
+#load weights of best model
+model.load_state_dict(torch.load(os.path.join(respath2,'weights.pth')))
 #create test features and label
 features_test, labels_test=timeseries_dataset_from_array(X_test_sc, windowsize, horizon+max_gap_length) 
 

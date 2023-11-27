@@ -22,7 +22,9 @@ def cm2inch(*tupl: tuple):
         return tuple(i/inch for i in tupl[0])
     else:
         return tuple(i/inch for i in tupl)
-    
+
+
+### NOT YET WORKING ####    
 def datetime_xaxis(start, end):
     # Generate datetime range with hourly frequency
     date_range = [start + timedelta(hours=i) for i in range(int((end - start).total_seconds() / 3600) + 1)]

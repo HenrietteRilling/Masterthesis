@@ -27,15 +27,16 @@ from bokeh.plotting import figure, show, output_file
 
 
 class LSTM(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers):
+    def __init__(self, input_size, hidden_size, num_layers, output_size):
         super(LSTM, self).__init__()
         self.num_layers = num_layers #number of stacked LSTM layers
         self.input_size = input_size #number of expected features in the input x
         self.hidden_size = hidden_size #number of features in the hidden state h
+        self.output_size = output_size #number of features in the output, aka forecast horizon
 
         self.lstm1 = nn.LSTM(input_size=input_size, hidden_size=hidden_size,
                           num_layers=num_layers, batch_first=True) #Defintion of the LSTM
-        self.fc =  nn.Linear(hidden_size, 1) #fully connected last layer, combines input to one output
+        self.fc =  nn.Linear(hidden_size, output_size) #fully connected last layer, combines input to one output
      
     def forward(self, x, future_pred=0):
         h_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.float32) #hidden state
@@ -44,11 +45,13 @@ class LSTM(nn.Module):
         output, (hn, cn) = self.lstm1(x, (h_0, c_0)) #lstm with input, hidden, and internal state
         hn = hn.view(-1, self.hidden_size) #reshaping the data for Dense layer next
         out = self.fc(hn) #Final output
+        # import pdb
+        # pdb.set_trace()
 
         out_future=[]
         for i in range(future_pred):
-            import pdb
-            pdb.set_trace()
+            # import pdb
+            # pdb.set_trace()
             #create future predictions if future_pred>0 is passed
             #same as forward step above, using last output/prediction as input
             o=torch.zeros(out.shape[0], out.shape[1], 2)
@@ -101,7 +104,8 @@ def train_one_epoch(epoch, model, train_dataloader, loss_func, optimizer):
     #assure that model is in training mode
     model.train()
     running_loss=0.0
-    
+    # import pdb
+    # pdb.set_trace()
     for X_batch, y_batch in train_dataloader:
         #pytorch accumulates gradients, therefore, clear gradients in each instance
         optimizer.zero_grad()
@@ -206,7 +210,7 @@ X_sc_complete=np.append(X_train_sc[:,0], X_val_sc[:,0])
 '''Batching data'''
 #parameter defintion
 window_size=10
-horizon=1
+horizon=5
 
 #how many features do we give as an input
 nr_features=2
@@ -232,9 +236,10 @@ learning_rate = 0.001 #0.001 lr
 input_size = 2 #number of features
 hidden_size = 2 #number of features in hidden state
 num_layers = 1 #number of stacked lstm layers
+output_size=horizon
 
 #Instantiate  the class LSTM object.
-model = LSTM(input_size, hidden_size, num_layers) #our lstm class
+model = LSTM(input_size, hidden_size, num_layers, output_size) #our lstm class
 
 #Choose loss function and Optimizer
 loss_fn = torch.nn.MSELoss()    # mean-squared error for regression

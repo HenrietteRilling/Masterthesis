@@ -160,24 +160,24 @@ if __name__ == "__main__":
     # plot_with_labels_subplots(WL, labels, station_id_to_name, rows=7, cols=3)
     
     #______________Plot Z_scores______________________
-    # z_scores=(WL-WL.mean())/WL.std()
+    z_scores=(WL-WL.mean())/WL.std()
     # plot_simple_subplots(z_scores, station_id_to_name, rows=7, cols=3)
 
-    # for col in z_scores:
-    #     plt.figure()
-    #     plt.plot(z_scores[col])
-    #     plt.axhline(y = 3, color = 'r', linestyle = '-')
-    #     plt.axhline(y = -3, color = 'r', linestyle = '-')
-    #     plt.title(station_id_to_name.get(col))
+    for col in z_scores:
+        plt.figure()
+        plt.plot(z_scores[col])
+        plt.axhline(y = 5, color = 'r', linestyle = '-')
+        plt.axhline(y = -5, color = 'r', linestyle = '-')
+        plt.title(station_id_to_name.get(col))
     
-    #remove outliers based on z-score
-    zscore=(WL-WL.mean())/WL.std()
-    threshold=3
-    WL_wo_anom= WL 
-    labels_wo_anom=labels
-    #Remove anomalies from ns Uldumkær
-    for col in WL.columns:
-        WL_wo_anom[col][np.abs(zscore[col])>threshold]=np.nan
-        labels_wo_anom[col][np.abs(zscore[col])>threshold]=2    
-    plot_with_labels_subplots(WL_wo_anom, labels_wo_anom, station_id_to_name, rows=7, cols=3)
+    # #remove outliers based on z-score
+    # zscore=(WL-WL.mean())/WL.std()
+    # threshold=3
+    # WL_wo_anom= WL 
+    # labels_wo_anom=labels
+    # #Remove anomalies from ns Uldumkær
+    # for col in WL.columns:
+    #     WL_wo_anom[col][np.abs(zscore[col])>threshold]=np.nan
+    #     labels_wo_anom[col][np.abs(zscore[col])>threshold]=2    
+    # plot_with_labels_subplots(WL_wo_anom, labels_wo_anom, station_id_to_name, rows=7, cols=3)
 
