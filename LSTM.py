@@ -20,7 +20,7 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 
 from Data_loader import get_WL_data, get_prcp_data
-from window_data import timeseries_dataset_from_array, _get_labelled_window
+from window_data import timeseries_dataset_from_array
 
 from bokeh.plotting import figure, show, output_file
 

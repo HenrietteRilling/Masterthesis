@@ -4,6 +4,9 @@ Created on Sun Nov  5 18:34:24 2023
 
 @author: Henriette
 """
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime, timedelta
 
@@ -22,6 +25,21 @@ def cm2inch(*tupl: tuple):
         return tuple(i/inch for i in tupl[0])
     else:
         return tuple(i/inch for i in tupl)
+
+
+def plot_losses(respath):
+    # losses=pd.read_csv(r'C:\Users\henri\Documents\Universität\Masterthesis\Masterthesis\results\losslog.csv', sep=';', header=None)
+    losses=pd.read_csv(respath, sep=';', header=None)
+
+    epoch=np.arange(len(losses)+1)
+    epoch=epoch[1:]
+
+    plt.figure()
+    plt.plot(epoch,losses[0], label='train')
+    plt.plot(epoch,losses[1], label='validation')
+    plt.legend()
+    plt.xlabel('Epoch')
+    plt.ylabel('MSE loss')
 
 
 ### NOT YET WORKING ####    
