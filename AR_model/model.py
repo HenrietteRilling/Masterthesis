@@ -18,8 +18,8 @@ class sampleFFNN_AR(torch.nn.Module):
     self.output_size= output_size
   
   def forward(self, inputs, labels):
-      # import pdb
-      # pdb.set_trace()
+      import pdb
+      pdb.set_trace()
       if self.output_size==1:
           ###########################Autoregressive loop###################
           ####cycle through all time steps from 1 to windowsize, using the prediction from previous time step as additional model input feature
@@ -28,7 +28,8 @@ class sampleFFNN_AR(torch.nn.Module):
           
           # initialize result_tensor_AR with zeros
           result_tensor_AR = torch.zeros((init_pred.size(0), 1, 1)) #torch.Size([B, 1, 1])
-    
+          pred = self.model(inputs[:, 0, :]) # [B, 1, 1]
+          #concat model prediction with precipitaiton of t+1
           t=1
           while t <inputs.size(1):
               # import pdb

@@ -17,9 +17,10 @@ def rmse(y, y_hat, savepath):
     #calculate RMSE
     mse=np.mean((y-y_hat)**2)
     rmse=np.sqrt(mse)
-    #save in logfile
-    with open(savepath, 'a') as file:
-        file.write(f'RMSE: {rmse}')
+    if savepath != None:
+        #save in logfile
+        with open(savepath, 'a') as file:
+            file.write(f'RMSE: {rmse}')
     return rmse
 
 
