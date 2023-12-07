@@ -98,10 +98,10 @@ if  model_tested =='FFNN_AR':
     respath=f'./results/{model_name}'
     if not os.path.exists(respath): os.makedirs(respath)
     #delete any existing losslog/files, to only save losses of current model run
-    losslogpath=os.path.join(respath, 'losslog.csv')
-    if os.path.exists(losslogpath): os.remove(losslogpath)
-    metricspath=os.path.join(respath, 'metrics.txt')
-    if os.path.exists(metricspath): os.remove(metricspath)
+    # losslogpath=os.path.join(respath, 'losslog.csv')
+    # if os.path.exists(losslogpath): os.remove(losslogpath)
+    # metricspath=os.path.join(respath, 'metrics.txt')
+    # if os.path.exists(metricspath): os.remove(metricspath)
     
     forecast_horizon=20 #for how many timesteps should the model predict in total?
     horizon=1 #how many time steps are predicted at each time step, we try to make one-step predictions
@@ -132,13 +132,13 @@ if  model_tested =='FFNN_AR':
     model=sampleFFNN_AR(input_size, hidden_size, output_size) 
     tr=True
     ###################
-    if tr==True:
+    if tr==False:
         trainer = Trainer(model,epochs,respath, batch_size)
         trainer.fit(data_loader_train,data_loader_val)
     ###################
 
     ##plot losses
-    plot_losses(losslogpath, respath)
+    # plot_losses(losslogpath, respath)
     
     # ###################################################################
     # ###################### Testing
@@ -154,46 +154,61 @@ if  model_tested =='FFNN_AR':
     #generate predictions based on test set
     all_test_preds=[]
     rmse_test_batches=[]
-
     for step, (x_batch_test, y_batch_test) in enumerate(data_loader_test):
-        if x_batch_test.size(0)!=batch_size:
-            continue
-        pred=model(x_batch_test, y_batch_test)
-        #calculate metric for each batch
-        rmse_test_batches.append(rmse(y_batch_test[:,1:,:1].numpy(), pred[:,1:,:].detach().numpy(), savepath=None))
+        # if x_batch_test.size(0)!=batch_size:
+        #     print(f'Batch size too small: {x_batch_test.size(0)}')
+        #     continue
+        pred=model(x_batch_test)
+        #calculate metric for each batch, exlcude precipitation in target
+        rmse_test_batches.append(rmse(y_batch_test[:,:,:1].numpy(), pred[:,:,:].detach().numpy(), savepath=None))
         all_test_preds.append(pred)
-
     rmse_test_avg=np.mean(rmse_test_batches)
     #concat list elements along "time axis" 0
     preds_test=torch.cat(all_test_preds, 0).detach().numpy()
     #calculate RMSE 
-    rmse_test=rmse(labels_test[:len(preds_test),1:,:1], preds_test[:,1:,:], savepath=None)
-    with open(metricspath, 'a') as file:
-        file.write(f'RMSE: {rmse_test}')
+    rmse_test=rmse(labels_test[:len(preds_test),:,:1], preds_test[:,:,:], savepath=None)
+    # with open(metricspath, 'a') as file:
+    #     file.write(f'RMSE: {rmse_test}')
 
-    # #extract first time step of each data window
-    # plot_test=train_WL_sc.inverse_transform(preds_test[:,1,:])
-    # plot_test=np.concatenate((plot_test[:,0], np.full(len(X_test_sc)-len(plot_test), np.nan)))
+    #extract first time step of each data window
+    plot_test=train_WL_sc.inverse_transform(preds_test[:,0,:])
+    #there are no predictions for the last timesteps in the length of the forecast horizon-1, as there's no target to compare to
+    plot_test=np.concatenate(([np.nan], plot_test[:,0], np.full(forecast_horizon-1, np.nan)))
 
-    # plt.figure()   
-    # plt.plot(pd.to_datetime(X_test.index), plot_test, label='prediction')
-    # plt.plot(pd.to_datetime(X_test.index), X_test[test_id], label='observation')
-    # plt.xlabel('Date')
-    # plt.ylabel('Water level [m]')
-    # plt.legend()  
-    # plt.title('Model: {model_name}')
+    plt.figure()   
+    plt.plot(pd.to_datetime(X_test.index), plot_test, label='prediction')
+    plt.plot(pd.to_datetime(X_test.index), X_test[test_id], label='observation')
+    plt.xlabel('Date')
+    plt.ylabel('Water level [m]')
+    plt.legend()  
+    plt.title(f'Model: {model_name}')
+    plt.show()
     # plt.savefig(os.path.join(respath, 'preds_test.png'))
-    # plt.close()         
+    # plt.close()    
+
+    #unscale all predictions
+    preds_test_unsc=train_WL_sc.inverse_transform(preds_test[:,:,0])
+    #plot whole prediciton horizon of a timestep (=time of prediciton TOP)
+    date=pd.to_datetime(X_test.index)
+    for i in np.arange(0,10, 2):
+        plt.figure()
+        #add nans before TOP
+        # plot_TOP_preds=np.concatenate((np.full(windowsize, np.nan),  preds_test_unsc[i]))
+        X_TOP_unsc=train_WL_sc.inverse_transform(X_test_sc[1+i:1+i+forecast_horizon,0].reshape(-1,1))
+        # plot_TOP_obs=np.concatenate((X_test_sc[:windowsize,0], np.full(horizon, np.nan)))
+        plt.plot(date[i:i+forecast_horizon],preds_test_unsc[i], label='prediction', linestyle='None', marker='.')
+        plt.plot(date[i:i+forecast_horizon],X_TOP_unsc[:,0], label='observation', linestyle='None', marker='.')
+        #Plot vertical line highlighting TOP
+        plt.axvline(x=date[i], color='black', linestyle='--', label='TOP')
+        plt.legend()
+        plt.xlabel('Date')
+        plt.ylabel('Water level [m]')
+        plt.title(f'Time step {i}: {date[i]}')
+        plt.show()
+        # plt.savefig(os.path.join(respath, f'preds_TOP_{i}.png'))
+        # plt.close()
+     
     
-    # if features_test==labels_test:
-    #     preds_test_unsc=train_WL_sc.inverse_transform(preds_test[0,:,:].detach().numpy())
-    #     plot_preds_test_unsc=np.concatenate((preds_test_unsc[:,0], np.full(horizon, np.nan)))
-    #     plt.figure()
-    #     plt.plot(pd.to_datetime(X_test.index), plot_preds_test_unsc, label='prediction')
-    #     plt.plot(pd.to_datetime(X_test.index), X_test[test_id], label='observation')
-    #     plt.xlabel('Date')
-    #     plt.ylabel('Water level [m]')
-    #     plt.legend()   
     
 # =============================================================================
 # FFNN_AR1: AR model, predicting h timesteps ahead in the future
@@ -309,6 +324,20 @@ elif model_tested == 'FFNN_AR1':
     #     plt.title(f'Time step {i}: {date[i]}')
     #     plt.savefig(os.path.join(respath, f'preds_TOP_{i}.png'))
     #     plt.close()
+
+#extract first time step of each data window
+plot_preds_test=train_WL_sc.inverse_transform(preds_test[:,0,:])
+plot_labels_test=train_WL_sc.inverse_transform(labels_test[:,0,:1])
+
+
+plt.figure()   
+plt.plot(pd.to_datetime(X_test.index)[1:-forecast_horizon+1], plot_preds_test, label='prediction')
+plt.plot(pd.to_datetime(X_test.index)[1:-forecast_horizon+1], plot_labels_test, label='observation')
+plt.xlabel('Date')
+plt.ylabel('Water level [m]')
+plt.legend()  
+plt.title(f'Model: {model_name}')
+plt.show()
 
 
 

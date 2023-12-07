@@ -44,6 +44,8 @@ def rescale_data_ffn(data, scaler, input_dim):
 
 
 
+
+
 def _get_labelled_window(windowed_data, horizon: int):
     """Create labels for windowed dataset
     Input: [0, 1, 2, 3, 4, 5] and horizon=1
@@ -76,7 +78,6 @@ def _get_labelled_window_AR(windowed_data, horizon: int):
     horizon : int
         the horizon to predict
     """
-
     if horizon>1:
         nr_f=windowed_data.shape[2] #number of features already in the data
         WL_pos=0 #position of water level data
@@ -84,6 +85,8 @@ def _get_labelled_window_AR(windowed_data, horizon: int):
         feature=windowed_data[:, :-horizon]
         #get label window, add additional "future predictions" as feature
         label=windowed_data[:, :-horizon]
+        #CHECK if necessary
+        # label=windowed_data[:, 1:-horizon]
         #expand 3rd dimension by horizon for being able to add more features i.e., the future predictions
         label_exp=np.zeros((label.shape[0], label.shape[1], label.shape[2]+horizon-1))
         label_exp[:,:,:nr_f]=label
