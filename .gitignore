@@ -2,4 +2,6 @@ __pycache__/
 .ipynb_checkpoints/
 211201_AR_model/
 231129_AR_model/
-AR_model/results/
+AR_model/results/FFNN_AR/losses.png
+AR_model/results/FFNN_AR/losslog.csv
+AR_model/results/FFNN_AR/weights.pth
