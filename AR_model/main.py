@@ -19,22 +19,7 @@ from utils import scale_data, timeseries_dataset_from_array, get_dataloader, get
 from plot_utils import plot_losses
 from model import sampleFFNN_AR
 from trainer import Trainer
-from metrics import rmse
-
-def generate_gaps(data, number):
-    size=int(number*len(data))
-    gapidx=np.random.randint(len(data),size=size)
-    data[gapidx,0]=np.nan
-    return data  
-    
-def generate_gaps_features(data, number):
-    #number of gaps relative to the length of the data
-    no_of_gaps=int(number*len(data[0,:,0]))
-    #choose randomly indexes where a gap will be created, np.choice is used as np.random.randint samples with replacement
-    gapidx=np.random.choice(np.arange(0, len(data[0,:,0])),no_of_gaps,replace=False)  
-    #replace values at chosen timesteps with nans
-    data[:,gapidx,0]=np.nan
-    return data
+from metrics import rmse, PI
 
 
 
@@ -55,7 +40,7 @@ for col in WL.columns:
 #select test stations and extract data
 test_station='Bjerringbro'
 test_id=station_name_to_id.get(test_station)
-test_prcp='05225'
+test_prcp='05135'
 
 X_WL=get_test_data(test_id, WL_wo_anom)
 X_prcp=get_test_data(test_prcp, prcp)
@@ -79,13 +64,10 @@ X_test_sc = train_sc.transform(X_test)
 #get scaler only for waterlevel for unscaling predictions
 _, train_WL_sc=scale_data(X_train[[test_id]])
 
-#####################################################
-#introduce artificial gaps in WL test 
-# X_test_sc=generate_gaps(X_test_sc, 0.1)
 
 #############################
 #choose which models are tested, options: ['FFNN_AR','FFNN_AR1','FFNN_AR2']
-model_tested='FFNN_AR'
+model_tested=''
 
 # =============================================================================
 # FFNN_AR: autoregressive model, creating a prediciton of length forecast_window
@@ -98,14 +80,13 @@ if  model_tested =='FFNN_AR':
     respath=f'./results/{model_name}'
     if not os.path.exists(respath): os.makedirs(respath)
     #delete any existing losslog/files, to only save losses of current model run
-    # losslogpath=os.path.join(respath, 'losslog.csv')
-    # if os.path.exists(losslogpath): os.remove(losslogpath)
-    # metricspath=os.path.join(respath, 'metrics.txt')
-    # if os.path.exists(metricspath): os.remove(metricspath)
+    losslogpath=os.path.join(respath, 'losslog.csv')
+    if os.path.exists(losslogpath): os.remove(losslogpath)
+    metricspath=os.path.join(respath, 'metrics.txt')
+    if os.path.exists(metricspath): os.remove(metricspath)
     
     forecast_horizon=20 #for how many timesteps should the model predict in total?
     horizon=1 #how many time steps are predicted at each time step, we try to make one-step predictions
-    max_gap_length=0
     epochs=150
     batch_size=100 #number of batches that is processed at once 
     
@@ -113,8 +94,8 @@ if  model_tested =='FFNN_AR':
     #get input in batches with w timesteps 
     #we feed predictions back in case of gaps, therefore we need a to extend the target by the maximum gap length for training
     #target with forecast horizon not needed ATM
-    features_train, labels_train = timeseries_dataset_from_array(X_train_sc, forecast_horizon, horizon+max_gap_length, AR=True)
-    features_val, labels_val=timeseries_dataset_from_array(X_val_sc, forecast_horizon, horizon+max_gap_length, AR=True) 
+    features_train, labels_train = timeseries_dataset_from_array(X_train_sc, forecast_horizon, horizon, AR=True)
+    features_val, labels_val=timeseries_dataset_from_array(X_val_sc, forecast_horizon, horizon, AR=True) 
     # labels_train = features_train
     # labels_val = features_val
     
@@ -132,13 +113,13 @@ if  model_tested =='FFNN_AR':
     model=sampleFFNN_AR(input_size, hidden_size, output_size) 
     tr=True
     ###################
-    if tr==False:
+    if tr==True:
         trainer = Trainer(model,epochs,respath, batch_size)
         trainer.fit(data_loader_train,data_loader_val)
     ###################
 
-    ##plot losses
-    # plot_losses(losslogpath, respath)
+    #plot losses
+    plot_losses(losslogpath, respath)
     
     # ###################################################################
     # ###################### Testing
@@ -148,32 +129,30 @@ if  model_tested =='FFNN_AR':
     model.load_state_dict(torch.load(os.path.join(respath,'weights.pth')))
     model.eval()
     #create test features and label
-    features_test, labels_test =timeseries_dataset_from_array(X_test_sc, forecast_horizon, horizon+max_gap_length, AR=True)
+    features_test, labels_test =timeseries_dataset_from_array(X_test_sc, forecast_horizon, horizon, AR=True)
     dataset_test, data_loader_test=get_dataloader(features_test, labels_test, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
     
     #generate predictions based on test set
     all_test_preds=[]
-    rmse_test_batches=[]
     for step, (x_batch_test, y_batch_test) in enumerate(data_loader_test):
-        # if x_batch_test.size(0)!=batch_size:
-        #     print(f'Batch size too small: {x_batch_test.size(0)}')
-        #     continue
+        #generate prediction
         pred=model(x_batch_test)
         #calculate metric for each batch, exlcude precipitation in target
-        rmse_test_batches.append(rmse(y_batch_test[:,:,:1].numpy(), pred[:,:,:].detach().numpy(), savepath=None))
         all_test_preds.append(pred)
-    rmse_test_avg=np.mean(rmse_test_batches)
+
     #concat list elements along "time axis" 0
     preds_test=torch.cat(all_test_preds, 0).detach().numpy()
-    #calculate RMSE 
-    rmse_test=rmse(labels_test[:len(preds_test),:,:1], preds_test[:,:,:], savepath=None)
-    # with open(metricspath, 'a') as file:
-    #     file.write(f'RMSE: {rmse_test}')
+    #unscale all predicitons and labels
+    preds_test_unsc=train_WL_sc.inverse_transform(preds_test[:,:,0])
+    labels_test_unsc=train_WL_sc.inverse_transform(labels_test[:, :,0]) #include only water level
+    features_test_unsc=train_WL_sc.inverse_transform(features_test[:,:,0]) #needed for PI, inlcude only water level
+    #calculate Metrics
+    rmse(labels_test_unsc[:len(preds_test),:], preds_test_unsc, savepath=metricspath)
+    PI(labels_test_unsc[:len(preds_test),:], features_test_unsc[:len(preds_test),:] ,preds_test_unsc, savepath=metricspath)
 
     #extract first time step of each data window
-    plot_test=train_WL_sc.inverse_transform(preds_test[:,0,:])
     #there are no predictions for the last timesteps in the length of the forecast horizon-1, as there's no target to compare to
-    plot_test=np.concatenate(([np.nan], plot_test[:,0], np.full(forecast_horizon-1, np.nan)))
+    plot_test=np.concatenate(([np.nan], preds_test_unsc[:,0], np.full(forecast_horizon-1, np.nan)))
 
     plt.figure()   
     plt.plot(pd.to_datetime(X_test.index), plot_test, label='prediction')
@@ -183,21 +162,20 @@ if  model_tested =='FFNN_AR':
     plt.legend()  
     plt.title(f'Model: {model_name}')
     plt.show()
-    # plt.savefig(os.path.join(respath, 'preds_test.png'))
+    plt.savefig(os.path.join(respath, 'preds_test.png'))
     # plt.close()    
 
-    #unscale all predictions
-    preds_test_unsc=train_WL_sc.inverse_transform(preds_test[:,:,0])
-    #plot whole prediciton horizon of a timestep (=time of prediciton TOP)
+
+
+    #plot whole prediction horizon of a timestep (=time of prediciton TOP)
     date=pd.to_datetime(X_test.index)
-    for i in np.arange(0,10, 2):
+    for i in np.arange(0,len(preds_test_unsc), 500):
         plt.figure()
-        #add nans before TOP
-        # plot_TOP_preds=np.concatenate((np.full(windowsize, np.nan),  preds_test_unsc[i]))
-        X_TOP_unsc=train_WL_sc.inverse_transform(X_test_sc[1+i:1+i+forecast_horizon,0].reshape(-1,1))
-        # plot_TOP_obs=np.concatenate((X_test_sc[:windowsize,0], np.full(horizon, np.nan)))
-        plt.plot(date[i:i+forecast_horizon],preds_test_unsc[i], label='prediction', linestyle='None', marker='.')
-        plt.plot(date[i:i+forecast_horizon],X_TOP_unsc[:,0], label='observation', linestyle='None', marker='.')
+        #add nan before TOP
+        plot_TOP_preds=np.concatenate(([np.nan],  preds_test_unsc[i]))
+        X_TOP_unsc=train_WL_sc.inverse_transform(X_test_sc[i:i+forecast_horizon+1,0].reshape(-1,1))
+        plt.plot(date[i:i+forecast_horizon+1],plot_TOP_preds, label='prediction', linestyle='None', marker='.')
+        plt.plot(date[i:i+forecast_horizon+1],X_TOP_unsc[:,0], label='observation', linestyle='None', marker='.')
         #Plot vertical line highlighting TOP
         plt.axvline(x=date[i], color='black', linestyle='--', label='TOP')
         plt.legend()
@@ -205,125 +183,12 @@ if  model_tested =='FFNN_AR':
         plt.ylabel('Water level [m]')
         plt.title(f'Time step {i}: {date[i]}')
         plt.show()
-        # plt.savefig(os.path.join(respath, f'preds_TOP_{i}.png'))
+        plt.savefig(os.path.join(respath, f'preds_TOP_{i}.png'))
         # plt.close()
-     
+         
+        
     
-    
-# =============================================================================
-# FFNN_AR1: AR model, predicting h timesteps ahead in the future
-# =============================================================================    
-    
-elif model_tested == 'FFNN_AR1':
-    model_name='FFNN_AR1'
-    print(f'\nRunning {model_name}')
-    respath=f'./results/{model_name}'    
-    
-    if not os.path.exists(respath): os.makedirs(respath)
-    #delete any existing losslog/files, to only save losses of current model run
-    losslogpath=os.path.join(respath, 'losslog.csv')
-    if os.path.exists(losslogpath): os.remove(losslogpath)
-    metricspath=os.path.join(respath, 'metrics.txt')
-    if os.path.exists(metricspath): os.remove(metricspath)
-    
-    windowsize=48 #2 days
-    horizon=12 #how many timesteps in the future do we want to predict
-    max_gap_length=0
-    epochs=150
-    batch_size=100 #number of batches that is processed at once 
-    
-    #batch data
-    #get input in batches with w timesteps 
-    #we feed predictions back in case of gaps, therefore we need a to extend the target by the maximum gap length for training
-    #target with forecast horizon not needed ATM
-    features_train, labels_train = timeseries_dataset_from_array(X_train_sc, windowsize, horizon+max_gap_length, AR=True)
-    features_val, labels_val=timeseries_dataset_from_array(X_val_sc, windowsize, horizon+max_gap_length, AR=True) 
-    
-    #get data_loader for all data, data_loader is an torch iterable to be able to iterate over batches
-    dataset_train, data_loader_train = get_dataloader(features_train, labels_train, batch_size=batch_size)
-    dataset_val, data_loader_val=get_dataloader(features_val, labels_val, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
-    
-    
-    #############################################################
-    #set up an autregressive model - the autoregressive model loop is defined in AR_model.py. The class in there imports a neural network configuration that is defined inside AR_nn_models.py, a feed forward model with 2 layers and as many neurons as defined in hidden size
-    input_size=features_train.shape[-1]+horizon  #number of input features, nr of neurons (nr of features +horizon as model is AR: predictions are added as additional feature in forward step)
-    hidden_size=25
-    output_size=horizon
-    
-    model=sampleFFNN_AR(input_size, hidden_size, horizon) 
-    tr=True
-    ###################
-    if tr==True:
-        trainer = Trainer(model,epochs,respath, batch_size)
-        trainer.fit(data_loader_train,data_loader_val)
-    ###################
-    
-    ##plot losses
-    plot_losses(losslogpath, respath)
-    
-    ###################################################################
-    ###################### Testing
-    
-    #load weights of best model
-    model.load_state_dict(torch.load(os.path.join(respath,'weights.pth')))
-    model.eval()
-    #create test features and label
-    features_test, labels_test =timeseries_dataset_from_array(X_test_sc, windowsize, horizon+max_gap_length, AR=True) 
-    dataset_test, data_loader_test=get_dataloader(features_test, labels_test, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
-    
-    #generate predictions based on test set
-    all_test_preds=[]
-    
-    for step, (x_batch_test, y_batch_test) in enumerate(data_loader_test):
-        if x_batch_test.size(0)!=batch_size:
-            continue
-        pred=model(x_batch_test, y_batch_test)
-        all_test_preds.append(pred)
-    
-    
-    #Calculate metrics    
-    #remove precipitation from labels
 
-    labels=np.concatenate((labels_test[:,:,:1], labels_test[:,:,2:]), axis=2)
-    preds_test=torch.cat(all_test_preds, 0).detach().numpy()
-    #calculate RMSE 
-    rmse_test=rmse(labels[:len(preds_test),1:,:], preds_test[:,1:,:], savepath=None)
-    with open(metricspath, 'a') as file:
-        file.write(f'RMSE: {rmse_test}')
-    
-    ######plot test predicitons
-    #unscale predictions, preds_test[0,:,:] ->prediciton closest to point of prediciton is chosen
-    preds_test_unsc=train_WL_sc.inverse_transform(preds_test[:,1:2,1])
-    #align x-axis to test data
-    plot_preds_test_unsc=np.concatenate((preds_test_unsc[:,0], np.full(len(X_test_sc)-len(preds_test_unsc), np.nan)))
-    plt.figure()
-    plt.plot(pd.to_datetime(X_test.index), plot_preds_test_unsc, label='prediction')
-    plt.plot(pd.to_datetime(X_test.index), X_test[test_id], label='observation')
-    plt.xlabel('Date')
-    plt.ylabel('Water level [m]')
-    plt.legend()
-    plt.title(f'Model: {model_name}')
-    # plt.savefig(os.path.join(respath, 'preds_test.png'))
-    # plt.close()
-    
-    # #plot whole prediciton horizon of a timestep (=time of prediciton TOP)
-    # date=pd.to_datetime(X_test.index)
-    # for i in np.arange(0,len(X_test), 500):
-    #     plt.figure()
-    #     #add nans before TOP
-    #     # plot_TOP_preds=np.concatenate((np.full(windowsize, np.nan),  preds_test_unsc[i]))
-    #     X_TOP_unsc=train_WL_sc.inverse_transform(X_test_sc[i:i+horizon,0].reshape(-1,1))
-    #     # plot_TOP_obs=np.concatenate((X_test_sc[:windowsize,0], np.full(horizon, np.nan)))
-    #     plt.plot(date[i:i+horizon],preds_test_unsc[i], label='prediction', linestyle='None', marker='.')
-    #     plt.plot(date[i:i+horizon],X_TOP_unsc[:,0], label='observation', linestyle='None', marker='.')
-    #     #Plot vertical line highlighting TOP
-    #     plt.axvline(x=date[i], color='black', linestyle='--', label='TOP')
-    #     plt.legend()
-    #     plt.xlabel('Date')
-    #     plt.ylabel('Water level [m]')
-    #     plt.title(f'Time step {i}: {date[i]}')
-    #     plt.savefig(os.path.join(respath, f'preds_TOP_{i}.png'))
-    #     plt.close()
 
 #extract first time step of each data window
 plot_preds_test=train_WL_sc.inverse_transform(preds_test[:,0,:])
@@ -338,6 +203,30 @@ plt.ylabel('Water level [m]')
 plt.legend()  
 plt.title(f'Model: {model_name}')
 plt.show()
+
+fig, ax1 = plt.subplots()
+
+# Plot water level on the bottom axis
+ax1.plot(pd.to_datetime(X_test.index), X_test[test_id], color='blue', label='Observation')
+ax1.plot(pd.to_datetime(X_test.index), plot_test, color='orange', label='Prediction')
+ax1.set_xlabel('Date')
+ax1.set_ylabel('Water Level')
+ax1.tick_params('y')
+
+# Create a second y-axis for precipitation
+ax2 = ax1.twinx()
+ax2.plot(-X_test[test_prcp], color='green', label='Precipitation')
+ax2.set_ylabel('Precipitation')
+ax2.tick_params('y')
+ax2.set_ylim(-20, 0)
+
+# Invert the tick labels on the second y-axis such that they are displayed positive
+yticks = ax2.get_yticks()
+ax2.set_yticks(yticks)
+ax2.set_yticklabels([abs(y) for y in yticks])
+fig.legend()
+
+
 
 
 

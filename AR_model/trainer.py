@@ -56,8 +56,6 @@ class Trainer():
             # pdb.set_trace()
             self.model.train()
             train_losses = []
-            import pdb
-            pdb.set_trace()
             for step, (x_batch_train, y_batch_train) in enumerate(data_loader_train):
                
                 #skip training of batch, if batchsize is too small (applies for last batch at times, if lenght of dataset is not a multiplier of batch size)
@@ -91,7 +89,7 @@ class Trainer():
             #safe model states, if validation loss improved
             if val_acc < best_val: 
                 best_val = val_acc
-                torch.save(self.model.state_dict(), os.path.join(self.outpath,'weights2.pth'))
+                torch.save(self.model.state_dict(), os.path.join(self.outpath,'weights.pth'))
                 early_stopping_counter=0 #reset early stopping counter, as model improved
                 
             #increase epoch counter if val loss didn't improve
