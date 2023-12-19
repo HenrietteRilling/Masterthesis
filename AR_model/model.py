@@ -7,7 +7,7 @@ Created on Thu Nov  2 11:27:15 2023
 
 import numpy as np
 import torch
-from nn_models import get_FFNN
+from nn_models import get_FFNN, get_LSTM
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class sampleFFNN_AR(torch.nn.Module):
@@ -41,5 +41,30 @@ class sampleFFNN_AR(torch.nn.Module):
            t+=1
          return result_tensor          
           
-
-          
+class sampleLSTM_AR(torch.nn.Module):
+    def __init__(self, noinputfeatures, hidden_size, num_layers,training_horizon):
+        super(sampleLSTM_AR, self).__init__()
+        #get LSTM model defined in nn_model
+        self.model=get_LSTM(noinputfeatures, hidden_size, num_layers)
+        self.horizon=training_horizon
+    
+    def forward(self, features):
+        #get windowsize for extracting features for first prediction
+        #featureslength=(windowsize + forecast horizon-1), "future" values > windowsize are only needed for retrieving values of features in AR loop for timesteps t+1 ... t+h
+        windowsize=features.shape[1]-self.horizon + 1
+        #create first model prediciton based only on observations
+        pred=self.model(features[:,:windowsize,:]) #in [B, W, F], out: [B, 1, 1]
+        #reshape predictions
+        result_tensor=pred
+        
+        t=1
+        ##Autoregressive loop
+        while t<self.horizon:
+            #get w-t input from features
+            features_for_this_step=features[:,t:windowsize+t,:]
+            #replace water level observation with latest prediction 
+            features_for_this_step[:,-t:,:1]=pred
+            pred=self.model(features_for_this_step)
+            result_tensor=torch.cat((result_tensor, pred),1)
+            t+=1
+        return result_tensor

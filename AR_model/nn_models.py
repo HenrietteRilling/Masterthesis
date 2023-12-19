@@ -44,9 +44,7 @@ class get_LSTM(torch.nn.Module):
 
 
     def forward(self, x):
-        import pdb
-        pdb.set_trace()
-        #dfine how the model layers will be applied
+        #define how the model layers will be applied
         #initialize hidden and cell states
         h_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.float32) #hidden state
         c_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.float32) #internal state

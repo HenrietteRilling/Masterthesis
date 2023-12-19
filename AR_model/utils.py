@@ -62,14 +62,13 @@ def _get_labelled_window(windowed_data, horizon: int):
 
 def _get_labelled_window_AR(windowed_data, horizon: int):
     """Create labels for windowed dataset
-    if horizon=1:
+    if horizon=1 and FFNN:
     Input: [0, 1, 2, 3, 4, 5] and horizon=1
     Output: ([0, 1, 2, 3, 4], [1, 2, 3, 4, 5])
     
-    if horizon>1:
-        data points in the length of horizon are added as additional features to labels
-        Input format: [batch, time, ... , features] and horizon=2
-        Output format: ([batch, time - horizon, ..., features], [batch, time - horizon, ..., features+horizon])
+    if horizon>1 and LSTM:
+        Input: [0, 1, 2, 3, 4, 5, 6, 7, 8] and horizon=3
+        Output: ([0,1,2,3,4,5,6,7],[6,7,8])
 
     Parameters
     ----------
@@ -78,22 +77,9 @@ def _get_labelled_window_AR(windowed_data, horizon: int):
     horizon : int
         the horizon to predict
     """
+    
     if horizon>1:
-        nr_f=windowed_data.shape[2] #number of features already in the data
-        WL_pos=0 #position of water level data
-        #get feature window
-        feature=windowed_data[:, :-horizon]
-        #get label window, add additional "future predictions" as feature
-        label=windowed_data[:, :-horizon]
-        #CHECK if necessary
-        # label=windowed_data[:, 1:-horizon]
-        #expand 3rd dimension by horizon for being able to add more features i.e., the future predictions
-        label_exp=np.zeros((label.shape[0], label.shape[1], label.shape[2]+horizon-1))
-        label_exp[:,:,:nr_f]=label
-        #add data shifted by one position for each additional dimension
-        for h in range(horizon-1):
-            label_exp[:,:,nr_f+h]=windowed_data[:,h+1:-horizon+h+1,WL_pos]
-        return feature, label_exp
+        return windowed_data[:, :-1], windowed_data[:, -horizon:]
     
     else: return windowed_data[:, :-horizon], windowed_data[:, horizon:] 
 
@@ -127,10 +113,12 @@ def timeseries_dataset_from_array(data, window_size, horizon, stride=1, label_in
     
 
     # Split windows and labels
-    windows, labels = _get_labelled_window(windowed_data, horizon)
-    
     if AR == True:
         windows, labels = _get_labelled_window_AR(windowed_data, horizon)
+    
+    else: 
+        windows, labels = _get_labelled_window(windowed_data, horizon)
+
     
     # Select only the labels we need
     if label_indices is not None:

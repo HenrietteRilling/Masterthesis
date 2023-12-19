@@ -32,9 +32,9 @@ for col in WL.columns:
     WL_wo_anom[col][np.abs(zscore[col])>threshold]=np.nan
 
 #select test stations and extract data
-test_station='Bjerringbro'
+test_station='ns Uldumkær'
 test_id=station_name_to_id.get(test_station)
-test_prcp='05135'
+test_prcp='05225'
 
 X_WL=get_test_data(test_id, WL_wo_anom)
 X_prcp=get_test_data(test_prcp, prcp)

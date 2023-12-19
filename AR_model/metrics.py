@@ -34,16 +34,18 @@ def PI(y, ymin1, y_hat, savepath):
     Persistence Index
     compares the sum of squared error to the error that would occur if the value was forecast as the previous observed value.
     y = true observations
-    ymin1 = true observations, shifted by one time step
+    ymin1 = true observations, shifted by one time step, onlyt first value is needed
     y_hat = predictions
     '''
-    import pdb
-    pdb.set_trace()
+    #crate array only containing first observation
+    ymin1_0=np.tile(ymin1[:,:1],ymin1.shape[1])
     SSE_pred=np.sum((y-y_hat)**2)
-    SSE_prev=np.sum((y-ymin1)**2)
+    SSE_prev=np.sum((y-ymin1_0)**2)
     PI=1-(SSE_pred/SSE_prev) 
     if savepath != None:
         #save in logfile
         with open(savepath, 'a') as file:
             file.write(f'{PI}\n')
     else: return PI
+    
+    

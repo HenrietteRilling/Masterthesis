@@ -9,6 +9,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import seaborn as sns
 from datetime import datetime, timedelta
 
 
@@ -44,4 +45,14 @@ def plot_losses(losslogpath, respath):
     plt.close()
 
 
+def plot_metrics_heatmap(rmse_df, PI_df, savepath):
+    #Create heatmap of metrics results
+    fig, axes = plt.subplots(1, 2, figsize=cm2inch((15, 9)),  sharey=True) 
+    sns.heatmap(rmse_df, ax=axes[0], square=True, cmap='YlGn_r',cbar=False,fmt='.2f', annot=True, linewidth=.5)
+    sns.heatmap(PI_df, ax=axes[1], square=True, cmap='YlGn_r', cbar=False, fmt='.0f',annot=True, linewidth=.5)
+    # for i, _ in enumerate(axes): axes[i].xaxis.tick_top()
+    axes[0].set_title('RMSE'); axes[1].set_title('PI')
+    axes[0].set_ylabel('Training horizon [h]',fontsize='medium')
+    axes[0].set_xlabel('Test horizon  [h]', fontsize='medium'); axes[1].set_xlabel('Test horizon  [h]',fontsize='medium')
+    plt.savefig(savepath, dpi=600)
 
