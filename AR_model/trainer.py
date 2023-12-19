@@ -9,7 +9,7 @@ import os,time
 import torch
 
 class Trainer():
-    def __init__(self,model,epochs,outpath, batchsize):
+    def __init__(self,model,epochs,outpath, batchsize, simnr):
         self.model = model
         self.epochs = epochs
         self.batchsize=batchsize
@@ -20,6 +20,7 @@ class Trainer():
         #
         if not os.path.exists(outpath): os.makedirs(outpath)
         self.outpath=outpath
+        self.simnr=simnr
         
     def _train_step(self, x, y):
         self.optimizer.zero_grad()
@@ -89,7 +90,8 @@ class Trainer():
             #safe model states, if validation loss improved
             if val_acc < best_val: 
                 best_val = val_acc
-                torch.save(self.model.state_dict(), os.path.join(self.outpath,'weights.pth'))
+                model_weights_path = os.path.join(self.outpath, 'weights.pth')
+                torch.save(self.model.state_dict(), model_weights_path)
                 early_stopping_counter=0 #reset early stopping counter, as model improved
                 
             #increase epoch counter if val loss didn't improve
@@ -97,7 +99,7 @@ class Trainer():
                 early_stopping_counter+=1    
             
             val_loss_results.append(val_acc)
-            with open(os.path.join(self.outpath,'losslog.csv'),'a') as f: f.write(str(train_acc)+';'+str(val_acc)+'\n')
+            with open(os.path.join(self.outpath,f'losslog_{self.simnr}.csv'),'a') as f: f.write(str(train_acc)+';'+str(val_acc)+'\n')
             print("Validation acc: %.4f" % (float(val_acc),))
             print("Time taken: %.2fs" % (time.time() - start_time))
             

@@ -131,10 +131,10 @@ fig, ax1 = plt.subplots(figsize=cm2inch((15, 9)))
 # Plot water level on the bottom axis
 ax1.plot(dates[date_mask], X_test[test_id][date_mask], color='blue', label='Observation', linestyle='None', marker='.', ms=3)
 ax1.plot(dates[date_mask], TOP1, color='darkorange', label='Prediction', linestyle='None', marker='.', ms=3)#alternative: limegreen, mediumseagreen
-ax1.plot(dates[date_mask], TOP2, color='darkorange', linestyle='None', marker='.', ms=3, label='TOP')
+ax1.plot(dates[date_mask], TOP2, color='darkorange', linestyle='None', marker='.', ms=3)
 ax1.plot(dates[date_mask], TOP3, color='darkorange', linestyle='None', marker='.', ms=3)
 ax1.plot(dates[date_mask], TOP4, color='darkorange', linestyle='None', marker='.', ms=3)
-ax1.axvline(x=dates[dates==start_date], color='black', linestyle='dotted')
+ax1.axvline(x=dates[dates==start_date], color='black', linestyle='dotted', label="TOP")
 ax1.axvline(x=dates[TOP2idx], color='black', linestyle='dotted', ms=1)
 ax1.axvline(x=dates[TOP3idx], color='black', linestyle='dotted')
 ax1.axvline(x=dates[TOP4idx], color='black', linestyle='dotted')
@@ -160,12 +160,12 @@ yticks = ax2.get_yticks()
 ax2.set_yticks(yticks)
 ax2.set_yticklabels([abs(y) for y in yticks])
 fig.legend(loc='upper center', ncol=3, fontsize='medium', frameon=False)
-fig.text(0., 0.5, 'Water level [m]', va='center', rotation='vertical', fontsize='large')
-fig.text(0.99, 0.5, 'Precipitation [mm/h]', va='center',rotation=-90, fontsize='large')
-plt.subplots_adjust(left= 0.05,bottom=0.05,right=0.95, top=0.9)
+fig.text(0.02, 0.5, 'Water level [m]', va='center', rotation='vertical', fontsize='large')
+fig.text(0.96, 0.5, 'Precipitation [mm/h]', va='center',rotation=-90, fontsize='large')
+plt.subplots_adjust(left= 0.03,bottom=0,right=0.96, top=0.95)
 #adjust space tight layout is taking in windows canva, neede that legend on top and label in bottom are shown. 
-# plt.tight_layout(rect=[0.05, 0.05 ,0.95, 0.9])
-plt.tight_layout()
+plt.tight_layout(rect=[0.03, 0 ,0.96, 0.95]) #rect: [left, bottom, right, top]
+# plt.tight_layout()
 #fig.legend()
 
 

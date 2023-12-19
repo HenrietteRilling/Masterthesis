@@ -40,16 +40,8 @@ def plot_losses(losslogpath, respath):
     plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('MSE loss')
-    plt.savefig(os.path.join(respath, 'losses.png'))
+    plt.savefig(respath)
     plt.close()
 
 
-### NOT YET WORKING ####    
-def datetime_xaxis(start, end):
-    # Generate datetime range with hourly frequency
-    date_range = [start + timedelta(hours=i) for i in range(int((end - start).total_seconds() / 3600) + 1)]
-    
-    # Convert datetime objects to strings for plotting
-    date_strings = [date.strftime('%Y-%m-%d %H') for date in date_range]
-    return date_strings
 

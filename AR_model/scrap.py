@@ -34,7 +34,7 @@ for col in WL.columns:
 #select test stations and extract data
 test_station='Bjerringbro'
 test_id=station_name_to_id.get(test_station)
-test_prcp='05225'
+test_prcp='05135'
 
 X_WL=get_test_data(test_id, WL_wo_anom)
 X_prcp=get_test_data(test_prcp, prcp)
@@ -54,14 +54,24 @@ X_test=X['2022-01-01':'2022-12-31']
 fig, ax1 = plt.subplots()
 
 # Plot water level on the bottom axis
-ax1.plot(X[test_id], color='blue', label='Water Level')
+ax1.plot(X_test[test_id], color='blue', label='Water Level')
 ax1.set_xlabel('Date')
 ax1.set_ylabel('Water Level', color='blue')
 ax1.tick_params('y', colors='blue')
 
 # Create a second y-axis for precipitation
 ax2 = ax1.twinx()
-ax2.plot(-X[test_prcp], color='green', label='Precipitation')
+ax2.plot(-X_test[test_prcp], color='green', label='Precipitation')
 ax2.set_ylabel('Precipitation', color='green')
 ax2.tick_params('y', colors='green')
+ax2.set_ylim(-20, 0)
+# Invert the tick labels on the second y-axis such that they are displayed positive
+
+yticks = ax2.get_yticks()
+ax2.set_yticks(yticks)
+ax2.set_yticklabels([abs(y) for y in yticks])
+
+
+
+
 

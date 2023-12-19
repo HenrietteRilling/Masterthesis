@@ -67,13 +67,14 @@ _, train_WL_sc=scale_data(X_train[[test_id]])
 
 #############################
 #choose which models are tested, options: ['FFNN_AR','FFNN_AR1','FFNN_AR2']
-model_tested=''
+model_tested='FFNN_AR'
 
 # =============================================================================
 # FFNN_AR: autoregressive model, creating a prediciton of length forecast_window
 # by making one-step predictions on each timestep
 # =============================================================================
-
+import pdb
+pdb.set_trace()
 if  model_tested =='FFNN_AR':
     model_name=model_tested
     print(f'\nRunning {model_name}')
