@@ -101,12 +101,12 @@ def plot_water_level_bokeh(df, name):
 def plot_prcp(df, rows, cols, savepath=None):
     fig, axes=plt.subplots(rows, cols, figsize=(cm2inch(15, 12)), constrained_layout=True)
     legend_colors = ['cornflowerblue', 'royalblue']
-    for i, column in enumerate(prcp.columns):
+    for i, column in enumerate(df.columns):
         row=i//cols
         col=i%cols
         ax=axes[row, col]
         stat_data=get_test_data(column, df)
-        if column in prcp.columns[:7]:
+        if column in df.columns[:7]:
             color= legend_colors[0]
         else: color = legend_colors[1]
         
@@ -186,7 +186,7 @@ if __name__ == "__main__":
 #     plot_water_level_bokeh(WL[[col]],  station_id_to_name.get(col))        
  
    #####################Precipitation##############################
-    # prcp=get_prcp_data(r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\SVK', r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\DMI_Climate_Data_prcp', join=True)
+    prcp=get_prcp_data(r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\SVK', r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\DMI_Climate_Data_prcp', join=True)
     
     # prcp.columns=prcp.columns.str.lstrip('0')
     # # savepath=r'C:\Users\henri\Documents\Universität\Masterthesis\Report\Prcp_all_stations2.png'
