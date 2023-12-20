@@ -73,13 +73,13 @@ _, train_WL_sc=scale_data(X_train[[test_id]])
 #choose horizons that are tested
 training_horizons=[1, 12, 24, 48, 168]  #1h, 1/2d, 1d, 2d, 1 week
 imputation_horizons=[1, 12, 24, 48, 168,  672] #1h, 1d, 2d, 1 week, 1 month
-nr_of_model_runs=1 #TODO
-epochs=10 #TODO
+nr_of_model_runs=5 #TODO
+epochs=150 #TODO
 batch_size=100 #number of batches that is processed at once 
 hidden_sizes=[25, 50, 100]
 
 #LSTM
-window_size=10
+window_size=10 #TODO
 num_lstm_layers=1
 
 
