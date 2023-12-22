@@ -54,14 +54,14 @@ X_test=X['2022-01-01':'2022-12-31']
 fig, ax1 = plt.subplots()
 
 # Plot water level on the bottom axis
-ax1.plot(X_test[test_id], color='blue', label='Water Level')
+ax1.plot(X[test_id], color='blue', label='Water Level')
 ax1.set_xlabel('Date')
 ax1.set_ylabel('Water Level', color='blue')
 ax1.tick_params('y', colors='blue')
-
+ax1.axhline(y=49.7, color='red')
 # Create a second y-axis for precipitation
 ax2 = ax1.twinx()
-ax2.plot(-X_test[test_prcp], color='green', label='Precipitation')
+ax2.plot(-X[test_prcp], color='green', label='Precipitation')
 ax2.set_ylabel('Precipitation', color='green')
 ax2.tick_params('y', colors='green')
 ax2.set_ylim(-20, 0)

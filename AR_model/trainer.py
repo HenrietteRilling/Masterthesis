@@ -14,7 +14,8 @@ class Trainer():
         self.epochs = epochs
         self.batchsize=batchsize
         #
-        self.optimizer = torch.optim.Adam(model.parameters(), lr=3e-4)
+        self.optimizer = torch.optim.Adam(model.parameters())
+        self.scheduler=torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=0.5) #exponential decay scheduler of learning rate
         #
         self.loss_fn = torch.nn.MSELoss()
         #
@@ -24,6 +25,7 @@ class Trainer():
         self.weightpath=weightpath
         
     def _train_step(self, x, y):
+        # torch.autograd.set_detect_anomaly(True)
         self.optimizer.zero_grad()
         #y doesn't need to be provided as input, first prediction is created based on true observation
         preds = self.model(x)
@@ -64,7 +66,9 @@ class Trainer():
                 #train model
                 loss_value = self._train_step(x_batch_train, y_batch_train)
                 train_losses.append(loss_value)
-                
+            #apply exponential decay of learning rate after 50 epochs
+            if epoch>=50:
+                self.scheduler.step()
             # Display metrics at the end of each epoch.
             train_acc = sum(train_losses)/len(train_losses)
             train_loss_results.append(train_acc)

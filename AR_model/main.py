@@ -82,29 +82,31 @@ if __name__ == '__main__':
     #read configuration
     with open('run_config_LSTM.json', 'r', encoding='utf-8') as f:
         config = json.load(f)
-    respath_list=[r'./Results/lstm_W_10_B_100_N_25_L_1']
+    # respath_list=[r'./Results/lstm_W_10_B_100_N_25_L_1']
+    respath_list=[]
     #train models
-    # for model in config['models']:
-    #     #load data
-    #     X, test_id=load_data(config['test_station'], config['prcp_station'])
-    #     if model=='lstm':
-    #         for window in config['window_size']:
-    #             for batch_size in config['batch_size']:
-    #                 for neurons in config['neurons']:
-    #                     for nr_layers in config['layers']:
+    for model in config['models']:
+        #load data
+        X, test_id=load_data(config['test_station'], config['prcp_station'])
+        if model=='lstm':
+            for window in config['window_size']:
+                for batch_size in config['batch_size']:
+                    for neurons in config['neurons']:
+                        for nr_layers in config['layers']:
                                                        
-    #                         respath=f'./Results/{model}_W_{window}_B_{batch_size}_N_{neurons}_L_{nr_layers}'
-    #                         run_LSTM(X, test_id, respath,
-    #                                  config['train_period'], config['val_period'], config['test_period'],
-    #                                  config['training_horizon'], config['imputation_horizon'], 
-    #                                  config['epochs'], batch_size, config['n_models'],
-    #                                  neurons, nr_layers, window
-    #                                  )
-    #                         respath_list.append(respath)
+                            respath=f'./Results/{model}_W_{window}_B_{batch_size}_N_{neurons}_L_{nr_layers}'
+                            run_LSTM(X, test_id, respath,
+                                      config['train_period'], config['val_period'], config['test_period'],
+                                      config['training_horizon'], config['imputation_horizon'], 
+                                      config['epochs'], batch_size, config['n_models'],
+                                      neurons, nr_layers, window
+                                      )
+                            respath_list.append(respath)
     #for each configuration that was trained get weights of model with lowest validation error
-for i, respath in enumerate(respath_list):
-    weight_paths=get_best_weigth_paths(respath,2) #config['n_models'])
-    plot_imputation()
+# for i, respath in enumerate(respath_list):
+#     weight_paths=get_best_weigth_paths(respath,2) #config['n_models'])
+#     plot_imputation(ih=48)
+#     plot_imputation(ih=48)
     
         
         

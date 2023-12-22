@@ -18,6 +18,7 @@ from datetime import datetime
 from utils import scale_data, timeseries_dataset_from_array, get_dataloader, get_WL_data, get_prcp_data, get_test_data
 from plot_utils import plot_losses, plot_metrics_heatmap
 from model import sampleFFNN_AR, sampleLSTM_AR
+from nn_models import LSTM_AR
 from trainer import Trainer
 from metrics import rmse, PI
 from bokeh.plotting import figure, show, output_file, save
@@ -42,7 +43,7 @@ def run_LSTM(data, test_id, respath, train_period, val_period, test_period, trai
     _, train_WL_sc=scale_data(X_train[[test_id]])
     
     import pdb
-    pdb.set_trace()
+    # pdb.set_trace()
     
     #make resultpath
     if not os.path.exists(respath): os.makedirs(respath)
@@ -76,7 +77,8 @@ def run_LSTM(data, test_id, respath, train_period, val_period, test_period, trai
             #############################################################
             #set up an autregressive model - the autoregressive model loop is defined in AR_model.py. The class in there imports a neural network configuration that is defined inside AR_nn_models.py, a feed forward model with 2 layers and as many neurons as defined in hidden size
             input_size=features_train.shape[-1]  #number of input features 
-            model=sampleLSTM_AR(input_size, neurons, num_lstm_layers, th)
+            # model=sampleLSTM_AR(input_size, neurons, num_lstm_layers, th)
+            model=LSTM_AR(input_size, window_size, neurons, num_lstm_layers)
      
             trainer = Trainer(model,epochs, b_size, weightpath, losslogpath)
             trainer.fit(data_loader_train,data_loader_val)
