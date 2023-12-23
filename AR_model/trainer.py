@@ -67,8 +67,9 @@ class Trainer():
                 loss_value = self._train_step(x_batch_train, y_batch_train)
                 train_losses.append(loss_value)
             #apply exponential decay of learning rate after 50 epochs
-            if epoch>=50:
+            if epoch>=50: #TODO
                 self.scheduler.step()
+                print(f'Current learning rate: {self.scheduler.get_last_lr()}')
             # Display metrics at the end of each epoch.
             train_acc = sum(train_losses)/len(train_losses)
             train_loss_results.append(train_acc)

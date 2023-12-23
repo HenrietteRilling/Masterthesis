@@ -71,7 +71,7 @@ def get_best_weigth_paths(path, nr_of_models):
             #replace loss-expressions with pattern of weightstring
             best_model_paths[-1]=losspath.replace('losslog', 'weights').replace('csv', 'pth')    
                 
-    return best_models_paths
+    return best_model_paths
     
 
 
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     with open('run_config_LSTM.json', 'r', encoding='utf-8') as f:
         config = json.load(f)
     # respath_list=[r'./Results/lstm_W_10_B_100_N_25_L_1']
-    respath_list=[]
+    configs_tested=[]
     #train models
     for model in config['models']:
         #load data
@@ -101,10 +101,10 @@ if __name__ == '__main__':
                                       config['epochs'], batch_size, config['n_models'],
                                       neurons, nr_layers, window
                                       )
-                            respath_list.append(respath)
+                            configs_tested.append([respath, model, window, batch_size, neurons, nr_layers])
     #for each configuration that was trained get weights of model with lowest validation error
-# for i, respath in enumerate(respath_list):
-#     weight_paths=get_best_weigth_paths(respath,2) #config['n_models'])
+# for i, conf in enumerate(configs_tested):
+#     weight_paths=get_best_weigth_paths(conf[0],2) #config['n_models'])
 #     plot_imputation(ih=48)
 #     plot_imputation(ih=48)
     

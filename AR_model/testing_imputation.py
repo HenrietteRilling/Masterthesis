@@ -69,18 +69,19 @@ X_test_sc = train_sc.transform(X_test)
 #get scaler only for waterlevel for unscaling predictions
 _, train_WL_sc=scale_data(X_train[[test_id]])
 ##testing
-respath=r'./Results/lstm_W_10_B_1000_N_25_L_1'
+respath=r'./Results/lstm_W_10_B_5000_N_25_L_2'
 
 #Model hyperparameter
 input_size=2  #number of input features 
 hidden_size=25 #number of neurons in hidden layer
 output_size=1
 horizon=1
-batch_size=100
+batch_size=5000
+window_size=10
 
 #Initialize model
 # model=sampleFFNN_AR(input_size, hidden_size, output_size)
-model=LSTM_AR(input_size, 10, hidden_size, 1)
+model=LSTM_AR(input_size, window_size, hidden_size, 2)
 #get paths of all weight files in the result folder using glob 
 best_weights=glob.glob(os.path.join(respath, "*.pth"))
 #define regular expression pattern for extracting training horizon of weight file name
@@ -93,7 +94,7 @@ test_h=[24, 168, 672] #1h, 1d, 2d, 1 week, 1 month
 # test_h=[1, 12, 24, 48, 168,  672] #1h, 1d, 2d, 1 week, 1 month
 
 #create test features and label, as only used for plotting, use longest test horizon for creating dataset as predictions of all smaller testhorizons are inlcuded
-features_test, labels_test =timeseries_dataset_from_array(X_test_sc, test_h[-1], horizon, AR=True)
+features_test, labels_test =timeseries_dataset_from_array(X_test_sc, window_size, 168, AR=True)
 dataset_test, data_loader_test=get_dataloader(features_test, labels_test, batch_size=batch_size, shuffle=False) #shuffle =False, as it is the set for validation???
 
 
@@ -104,7 +105,8 @@ msize=1
 axs=axes.flatten()
 i=0
 
-
+import pdb
+pdb.set_trace()
 #loop over weights
 for path in best_weights:
     
@@ -123,6 +125,7 @@ for path in best_weights:
         #save predictions of current batch
         all_test_preds.append(pred)
     
+    pdb.set_trace()
     #concat list elements along "time axis" 0
     preds_test=torch.cat(all_test_preds, 0).detach().numpy()
     #unscale all predicitons and labels
@@ -191,7 +194,7 @@ for path in best_weights:
             TOP2=np.concatenate((np.full(beforeTOP2+1,np.nan),preds_test_unsc[TOP2idx,:th], np.full((np.count_nonzero(date_mask)-th-beforeTOP2-1),np.nan)))
             
             # TOP: '2022-09-10 00:00:00' 
-            TOP3idx=np.where(dates==(dt_start_date+timedelta(days=13)))[0][0]
+            # TOP3idx=np.where(dates==(dt_start_date+timedelta(days=13)))[0][0]
             TOP3idx=np.where(dates=='2022-04-15 00:00:00')[0][0]
             beforeTOP3=TOP3idx-np.argmax(date_mask)
             TOP3=np.concatenate((np.full(beforeTOP3+1,np.nan),preds_test_unsc[TOP3idx,:th], np.full((np.count_nonzero(date_mask)-th-beforeTOP3-1),np.nan)))

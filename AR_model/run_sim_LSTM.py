@@ -111,7 +111,7 @@ def run_LSTM(data, test_id, respath, train_period, val_period, test_period, trai
                 
                 ####################################
                 #Metrics  
-                pdb.set_trace()
+                # pdb.set_trace()
                 #concat list elements along "time axis" 0
                 preds_test=torch.cat(all_test_preds, 0).detach().numpy()
                 #unscale all predicitons and labels
@@ -128,23 +128,23 @@ def run_LSTM(data, test_id, respath, train_period, val_period, test_period, trai
                 #extract first time step of each data window
                 #there are no predictions for the last timesteps in the length of the forecast horizon-1, as there's no target to compare to
                 # plot_test=np.concatenate(( preds_test_unsc[:,0], np.full(ih-1, np.nan)))
-                pdb.set_trace()
+                # pdb.set_trace()
                 # Create a Bokeh figure for the last model
-                if (i%nr_of_model_runs == 0): #& (ih==imputation_horizons[-1]): #TODO
-                    p = figure(x_axis_label='Date', y_axis_label='Water level [m]', title=f'Model {i} TH: {th} IH: {ih}')
+                # if (i%nr_of_model_runs == 0): #& (ih==imputation_horizons[-1]): #TODO
+                #     p = figure(x_axis_label='Date', y_axis_label='Water level [m]', title=f'Model {i} TH: {th} IH: {ih}')
                     
-                    #plot prediction
-                    p.line(pd.to_datetime(X_test.index)[window_size:-ih+1], preds_test_unsc[:,0], line_width=2, legend_label='Prediction', line_color='darkorange')            
-                    # Plot observation
-                    p.line(pd.to_datetime(X_test.index)[window_size:-ih+1], labels_test_unsc[:,0], line_width=2, legend_label='Observation', line_color='blue')
-                    # Customize the plot
-                    p.legend.location = 'top_left'
-                    #control how dateticks are shown
-                    p.xaxis.formatter = DatetimeTickFormatter(days="%m/%d",months="%m/%Y", years="%Y")
+                #     #plot prediction
+                #     p.line(pd.to_datetime(X_test.index)[window_size:-ih+1], preds_test_unsc[:,0], line_width=2, legend_label='Prediction', line_color='darkorange')            
+                #     # Plot observation
+                #     p.line(pd.to_datetime(X_test.index)[window_size:-ih+1], labels_test_unsc[:,0], line_width=2, legend_label='Observation', line_color='blue')
+                #     # Customize the plot
+                #     p.legend.location = 'top_left'
+                #     #control how dateticks are shown
+                #     p.xaxis.formatter = DatetimeTickFormatter(days="%m/%d",months="%m/%Y", years="%Y")
                     
-                    # Save the plot
-                    output_file(os.path.join(respath, f'preds_test_{th}_{ih}.html'))
-                    save(p)
+                #     # Save the plot
+                #     output_file(os.path.join(respath, f'preds_test_{th}_{ih}.html'))
+                #     save(p)
         #Calculate final metrics for each training horizon i.e., mean over all model runs
         rmse_df.loc[th][:]=rmse_all_model_runs.mean(axis=0)
         PI_df.loc[th][:]=PI_all_model_runs.mean(axis=0)

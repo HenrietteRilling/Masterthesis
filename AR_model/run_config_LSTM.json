@@ -9,15 +9,15 @@
     "val_period": ["2019-01-01","2021-12-31"],
     "test_period": ["2022-01-01","2022-12-31"],
 
-    "training_horizon": [12],
-    "imputation_horizon": [24],
+    "training_horizon": [12, 24, 48, 168],
+    "imputation_horizon": [12, 24, 48, 168],
 
-    "epochs": 50,
+    "epochs": 2,
     "batch_size": [1000],
     "n_models": 1,
 
     "neurons": [25],
-    "layers": [1],
+    "layers": [2],
     "window_size": [10]
 
 }
