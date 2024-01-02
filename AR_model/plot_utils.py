@@ -55,4 +55,5 @@ def plot_metrics_heatmap(rmse_df, PI_df, savepath):
     axes[0].set_ylabel('Training horizon [h]',fontsize='medium')
     axes[0].set_xlabel('Test horizon  [h]', fontsize='medium'); axes[1].set_xlabel('Test horizon  [h]',fontsize='medium')
     plt.savefig(savepath, dpi=600)
+    plt.close()
 

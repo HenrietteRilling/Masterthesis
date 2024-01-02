@@ -3,7 +3,6 @@
 
     "test_station": "ns Uldumkær",
     "prcp_station": "05225",
-    "prcp_station": "05225",
 	
     "train_period": ["2012-01-01","2018-12-31"],
     "val_period": ["2019-01-01","2021-12-31"],
@@ -11,13 +10,14 @@
 
     "training_horizon": [1, 12, 24, 48, 168],
     "imputation_horizon": [1, 12, 24, 48, 168, 672],
+    "plot_horizon": [48, 168],
 
     "epochs": 150,
-    "batch_size": 100,
+    "batch_size": [1000, 10000],
     "n_models": 5,
 
     "neurons": [25],
-    "layers": [1],
-    "window_size": [10, 100, 1000]
+    "layers": [1, 2],
+    "window_size": [10, 20, 50]
 
 }

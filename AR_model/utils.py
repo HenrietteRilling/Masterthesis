@@ -77,11 +77,10 @@ def _get_labelled_window_AR(windowed_data, horizon: int):
     horizon : int
         the horizon to predict
     """
-    
     if horizon>1:
         return windowed_data[:, :-1], windowed_data[:, -horizon:]
     
-    else: return windowed_data[:, :-horizon], windowed_data[:, horizon:] 
+    else: return windowed_data[:, :-horizon], windowed_data[:, -horizon:] 
 
 
 def timeseries_dataset_from_array(data, window_size, horizon, stride=1, label_indices: list=None, AR=False):

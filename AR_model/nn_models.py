@@ -29,28 +29,6 @@ class get_FFNN(torch.nn.Module):
         return x
 
 
-class get_LSTM(torch.nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers):
-        super(get_LSTM, self).__init__()
-        self.num_layers = num_layers #number of stacked LSTM layers
-        self.input_size = input_size #number of expected features in the input x
-        self.hidden_size = hidden_size #number of features in the hidden state h
-        #define the model layers to include
-        self.lstm1 = torch.nn.LSTM(input_size=input_size, hidden_size=hidden_size,
-                          num_layers=num_layers, batch_first=True, dropout=0.2) #Defintion of the LSTM
-        self.fc = torch.nn.Linear(hidden_size, 1) #fully connected last layer, combines input to one output
-
-
-    def forward(self, x):
-        #define how the model layers will be applied
-        #initialize hidden and cell states
-        h_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.float32) #hidden state
-        c_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.float32) #internal state
-        # Propagate input through LSTM
-        output, (hn, cn) = self.lstm1(x, (h_0, c_0)) #lstm with input, hidden, and internal state
-        hn = hn.view(-1, self.hidden_size) #reshaping the data for Dense layer next
-        out = self.fc(hn) #Final output
-        return out.unsqueeze(-1) #unsqueeze adds another dimension of 1 to the tensor, necessary to have same shape as batched target data   
 
 
 class LSTM_cell_AR(torch.nn.Module):
@@ -105,7 +83,7 @@ class LSTM_AR(torch.nn.Module):
         self.linear=torch.nn.Linear(hidden_size, 1)
     
     def forward(self, x):
-        import pdb
+        # import pdb
         # pdb.set_trace()
         out=[]
         x_pre = x[:, :self.window_size]
@@ -128,15 +106,37 @@ class LSTM_AR(torch.nn.Module):
         ##Autoregressive loop, run one step predictions
         while i<(x_post.shape[1]):
             #get w-t input from features
-            # feature_for_this_step=x_post[:,i,:]
             #replace water level observation with latest prediction 
-            # feature_for_this_step[:,:1]=out[-1]
             feature_for_this_step=torch.cat((out[-1], x_post[:,i,1:]),1).unsqueeze(1)
             _, (hn, cn)=self.lstm(feature_for_this_step, (hn, cn))
             out.append(self.linear(hn[-1]))
             i+=1
         return torch.stack(out, dim=1)
 
+
+
+class get_LSTM(torch.nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers):
+        super(get_LSTM, self).__init__()
+        self.num_layers = num_layers #number of stacked LSTM layers
+        self.input_size = input_size #number of expected features in the input x
+        self.hidden_size = hidden_size #number of features in the hidden state h
+        #define the model layers to include
+        self.lstm1 = torch.nn.LSTM(input_size=input_size, hidden_size=hidden_size,
+                          num_layers=num_layers, batch_first=True, dropout=0.2) #Defintion of the LSTM
+        self.fc = torch.nn.Linear(hidden_size, 1) #fully connected last layer, combines input to one output
+
+
+    def forward(self, x):
+        #define how the model layers will be applied
+        #initialize hidden and cell states
+        h_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.float32) #hidden state
+        c_0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, dtype=torch.float32) #internal state
+        # Propagate input through LSTM
+        output, (hn, cn) = self.lstm1(x, (h_0, c_0)) #lstm with input, hidden, and internal state
+        hn = hn.view(-1, self.hidden_size) #reshaping the data for Dense layer next
+        out = self.fc(hn) #Final output
+        return out.unsqueeze(-1) #unsqueeze adds another dimension of 1 to the tensor, necessary to have same shape as batched target data   
 
         
         

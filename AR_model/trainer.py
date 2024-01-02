@@ -51,11 +51,9 @@ class Trainer():
         training_start=time.time()
         for epoch in range(self.epochs):
             ######## Run training
-            print("\nStart of epoch %d" % (epoch))
+            # print("\nStart of epoch %d" % (epoch))
             start_time = time.time()
             # Iterate over the batches of the dataset.
-            # import pdb
-            # pdb.set_trace()
             self.model.train()
             train_losses = []
             for step, (x_batch_train, y_batch_train) in enumerate(data_loader_train):
@@ -69,12 +67,12 @@ class Trainer():
             #apply exponential decay of learning rate after 50 epochs
             if epoch>=50: #TODO
                 self.scheduler.step()
-                print(f'Current learning rate: {self.scheduler.get_last_lr()}')
+                # print(f'Current learning rate: {self.scheduler.get_last_lr()}')
             # Display metrics at the end of each epoch.
             train_acc = sum(train_losses)/len(train_losses)
             train_loss_results.append(train_acc)
-            print("Training acc over epoch: %.4f" % (float(train_acc),)) #TODO outcomment
-            print("Training time: %.2fs" % (time.time() - start_time)) #TODO outcomment
+            # print("Training acc over epoch: %.4f" % (float(train_acc),)) #TODO outcomment
+            # print("Training time: %.2fs" % (time.time() - start_time)) #TODO outcomment
             
             ########
             # Run a validation loop at the end of each epoch.
@@ -103,14 +101,12 @@ class Trainer():
             
             val_loss_results.append(val_acc)
             with open(self.losspath,'a') as f: f.write(str(train_acc)+';'+str(val_acc)+'\n')
-            print("Validation acc: %.4f" % (float(val_acc),)) #TODO outcomment
-            print("Time taken: %.2fs" % (time.time() - start_time)) #TODO outcomment
+            # print("Validation acc: %.4f" % (float(val_acc),)) #TODO outcomment
+            # print("Time taken: %.2fs" % (time.time() - start_time)) #TODO outcomment
             
             #apply early stopping criteria
             if early_stopping_counter >=early_stopping_criteria:
                 print(f'\nEarly stopping in {epoch}, no improvement of validation loss for {early_stopping_criteria} consecutive epochs.')
-                print(f'Time taken: {time.time()-training_start}')
-                print(f'Validation acc: {float(val_acc):.4f}')
                 break
         print(f'\nFinished Training after {epoch} epochs.')
         print(f'Time taken: {time.time()-training_start}')

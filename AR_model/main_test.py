@@ -82,7 +82,7 @@ def get_best_weigth_paths(path, nr_of_models):
 if __name__ == '__main__':
     
     #read configuration
-    with open('run_config_LSTM.json', 'r', encoding='utf-8') as f:
+    with open('run_config_LSTM.json2', 'r', encoding='utf-8') as f:
         config = json.load(f)
     # respath_list=[r'./Results/lstm_W_10_B_100_N_25_L_1']
     configs_tested=[]
