@@ -73,5 +73,40 @@ ax2.set_yticklabels([abs(y) for y in yticks])
 
 
 
+'''
+Old function for plotting directly in simulation
+'''
+def get_best_weigth_paths(path, nr_of_models):
+    '''
+    The same model configuration is trained for n times for balancing statistical variations. 
+    Visualisation of results is based on model with lowest validation error, this function identifies
+    the model with the lowest valdiation error among the model runs.
+    '''
+    losslogpaths=glob.glob(os.path.join(path, '*losslog*.csv'))
+    #define regular expression pattern for extracting training horizon of weight file name
+    pattern=re.compile(r'losslog_(\d+)_\d+\.csv')
+    #sort weights from shortest to longest training horizon
+    losslogpaths=sorted(losslogpaths, key=lambda x: int(re.search(pattern, x).group(1)))
+    best_model_paths=[]
+    #loop over lossfiles and find for each training horizon the model with the lowest validation error
+    for i, losspath in enumerate(losslogpaths):
+        #read very last validation loss from file
+        if i%nr_of_models==0:
+            val_loss=1.0
+            best_model_paths.append(losspath)
+        
+        #read only value of last row as this corresponds to the lowest validation error
+        cur_val_loss=pd.read_csv(losspath, header=None, sep=';',usecols=[1],skiprows=lambda x: x < sum(1 for line in open(losspath)) - 1).iloc[0,0]
+        if cur_val_loss<val_loss:
+            val_loss=cur_val_loss
+            #replace loss-expressions with pattern of weightstring
+            best_model_paths[-1]=losspath.replace('losslog', 'weights').replace('csv', 'pth')    
+                
+    return best_model_paths
 
 
+    # for i, conf in enumerate(configs_tested):
+    #     weight_paths=get_best_weigth_paths(conf[0],config['n_models'])
+    #     plot_imputation(X, test_id, config['prcp_station'], conf[0], config['train_period'], config['test_period'], config['plot_horizon'], 
+    #                     conf[3], conf[4], conf[5], conf[2], weight_paths) 
+ 

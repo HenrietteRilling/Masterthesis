@@ -65,7 +65,7 @@ class Trainer():
                 loss_value = self._train_step(x_batch_train, y_batch_train)
                 train_losses.append(loss_value)
             #apply exponential decay of learning rate after 50 epochs
-            if epoch>=50: #TODO
+            if epoch>=50: 
                 self.scheduler.step()
                 # print(f'Current learning rate: {self.scheduler.get_last_lr()}')
             # Display metrics at the end of each epoch.
@@ -111,3 +111,4 @@ class Trainer():
         print(f'\nFinished Training after {epoch} epochs.')
         print(f'Time taken: {time.time()-training_start}')
         print(f'Validation acc: {float(val_acc):.4f}')
+        return val_acc

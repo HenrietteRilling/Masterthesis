@@ -204,3 +204,35 @@ def get_test_data(stat_id, data_df, interpolation=True):
     if interpolation:
         X.interpolate(inplace=True)
     return X
+
+
+def load_data(WL_stat, prcp_stat):
+    
+    
+    
+    #############################################
+    #load data
+    WL, _, station_name_to_id, _ = get_WL_data(r'./Data')
+    prcp=get_prcp_data(r'./Data', r'./Data', join=True)
+
+    #remove outliers from WL data with z-score in order to train model with "good" time-series
+    #calculate z-score
+    zscore=(WL-WL.mean())/WL.std()
+    #threshhold for detecting outliers
+    threshold=3
+    WL_wo_anom= WL 
+    for col in WL.columns:
+        WL_wo_anom[col][np.abs(zscore[col])>threshold]=np.nan
+
+    #select test stations and extract data
+    test_station=WL_stat
+    test_id=station_name_to_id.get(test_station)
+    test_prcp=prcp_stat
+
+    X_WL=get_test_data(test_id, WL_wo_anom)
+    X_prcp=get_test_data(test_prcp, prcp)
+
+    #merge precipitation and WL data, select overlapping timeperiod
+    X=pd.concat([X_WL, X_prcp], axis=1).loc[X_WL.index.intersection(X_prcp.index)]
+    # X=X_WL
+    return X, test_id

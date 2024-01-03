@@ -6,82 +6,56 @@ Created on Wed Dec 27 10:55:25 2023
 """
 
 import os
-import re
+import pickle
+import csv
 import numpy as np
 import pandas as pd
 
-import torch
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
-#Set the number of CPU threads that PyTorch will use for parallel processing
-torch.set_num_threads(8)
-
 from datetime import datetime, timedelta
-from utils import scale_data, timeseries_dataset_from_array, get_dataloader
 from plot_utils import cm2inch
-from nn_models import LSTM_AR
 
 
 
-def plot_imputation(data, test_id, test_prcp, respath, train_period, test_period, plot_h, b_size, neurons, num_lstm_layers, window_size, weightpaths):
-    X_train=data[train_period[0]:train_period[1]]
-    X_test=data[test_period[0]:test_period[1]]
-    
-    #scale and normalise such that all data has a range between [0,1], store scaler for rescaling
-    _, train_sc = scale_data(X_train)
-    X_test_sc = train_sc.transform(X_test)
-    
-    #get scaler only for waterlevel for unscaling predictions
-    _, train_WL_sc=scale_data(X_train[[test_id]])
-    #free memory
-    del X_train
-    
-    
-    #create test features and label, as only used for plotting, use longest imputation horizon for creating dataset as predictions of all smaller testhorizons are inlcuded
-    features_test, labels_test =timeseries_dataset_from_array(X_test_sc, window_size, max(plot_h), AR=True)
-    dataset_test, data_loader_test=get_dataloader(features_test, labels_test, batch_size=b_size, shuffle=False) 
-    
-    
-    input_size=features_test.shape[-1]  #number of input features 
-    #Initialize model
-    model=LSTM_AR(input_size, window_size, neurons, num_lstm_layers)
-    
-    #get pattern for extracting 
-    pattern=re.compile(r'weights_(\d+)_\d+\.pth')
-    #create figure for plots of testhorizon
-    train_h=[]
-    all_test_preds_unsc_list=[]
 
-    for i, path in enumerate(weightpaths):
 
-        #extract horizon the model was trained on using the pattern defined above, group = capturing group (\d) that was defined in pattern expression
-        train_h.append(re.search(pattern, path).group(1))
-        
-        #load weights of best model
-        model.load_state_dict(torch.load(path))
-        model.eval()
-        
-        #generate predictions based on test set
-        all_test_preds=[]
-        for step, (x_batch_test, y_batch_test) in enumerate(data_loader_test):
-            #generate prediction
-            pred=model(x_batch_test)
-            #save predictions of current batch
-            all_test_preds.append(pred)
-        
+respath=r'./Results'
+configpath=os.path.join(respath, 'configs.csv')
 
-        #concat list elements along "time axis" 0
-        preds_test=torch.cat(all_test_preds, 0).detach().numpy()
-        #unscale all predicitons and labels
-        preds_test_unsc=train_WL_sc.inverse_transform(preds_test[:,:,0])
-        all_test_preds_unsc_list.append(preds_test_unsc)
+#Read csv file with model configurations
+with open(configpath, 'r') as csv_file:
+    csv_reader = csv.reader(csv_file)
     
-    for th in plot_h:
+    # Convert the CSV rows to a list
+    config_list = list(csv_reader)
+
+
+#Constants
+plot_h=[48, 168]
+train_h=[1, 12, 24, 48, 164]
+
+for config in config_list:
+    #get path of pkl file for current model configuration
+    pred_pkl_path=os.path.join(respath, f'{os.path.basename(config[0])}.pkl')
+    #Read pickle    
+    with open(pred_pkl_path, 'rb') as pickle_file:
+        data = pickle.load(pickle_file)
+    
+    #Extract data
+    pred_list=data[0]
+    X_test=data[1]
+    
+    #Get id of test station and precipitation station
+    test_id=config[-2]
+    test_prcp=config[-1]
+    
+    for th in plot_h:    
         fig, axes = plt.subplots(3,2, figsize=cm2inch((15, 12)), sharey=True)
         msize=1
         axs=axes.flatten()
-        for i, preds in enumerate(all_test_preds_unsc_list):
+        for i, preds in enumerate(pred_list):
             if th ==48:
                 #Zoom for month September:
                 dates=pd.to_datetime(X_test.index)
@@ -158,7 +132,7 @@ def plot_imputation(data, test_id, test_prcp, respath, train_period, test_period
             ax1.plot(dates[date_mask], TOP4, color='darkorange', linestyle='solid', lw=0.5, marker='.', ms=msize)
         
             #plot lines marking TOP
-            if i==0: #define lable
+            if i==0: #define label
                 ax1.axvline(x=dates[TOP1idx], color='black', linestyle='dotted',lw=1, label="TOP")
             else:
                 ax1.axvline(x=dates[TOP1idx], color='black', linestyle='dotted', lw=1)
@@ -166,8 +140,6 @@ def plot_imputation(data, test_id, test_prcp, respath, train_period, test_period
             ax1.axvline(x=dates[TOP3idx], color='black', linestyle='dotted', lw=1)
             ax1.axvline(x=dates[TOP4idx], color='black', linestyle='dotted', lw=1)
             
-            import pdb
-            pdb.set_trace()
             #adjust xticks
             locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
             formatter = mdates.ConciseDateFormatter(locator)
@@ -210,6 +182,9 @@ def plot_imputation(data, test_id, test_prcp, respath, train_period, test_period
         plt.subplots_adjust(left= 0.06, bottom=0,right=0.96, top=1.0, hspace=0.2)
         #adjust space tight layout is taking in windows canva, neede that legend on top and label in bottom are shown. 
         plt.tight_layout(rect=[0.06, 0 ,0.96, 1.0],pad=0.3) #rect: [left, bottom, right, top]
-        plt.savefig(os.path.join(respath, f'Imputation_test_h_{th}.png'), dpi=600)
+        plt.savefig(os.path.join(respath, f'{os.path.basename(config[0])}_Imputation_h_{th}.png'), dpi=600)
         plt.close()
+
+
+
         

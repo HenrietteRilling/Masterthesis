@@ -8,16 +8,14 @@ Created on Thu Nov  2 10:09:19 2023
 import os
 import numpy as np
 import pandas as pd
+import pickle
 
 import torch
-import matplotlib.pyplot as plt
 #Set the number of CPU threads that PyTorch will use for parallel processing
 torch.set_num_threads(8)
 
-from datetime import datetime
-from utils import scale_data, timeseries_dataset_from_array, get_dataloader, get_WL_data, get_prcp_data, get_test_data
+from utils import scale_data, timeseries_dataset_from_array, get_dataloader
 from plot_utils import plot_losses, plot_metrics_heatmap
-from model import sampleFFNN_AR, sampleLSTM_AR
 from nn_models import LSTM_AR
 from trainer import Trainer
 from metrics import rmse, PI
@@ -49,11 +47,13 @@ def run_LSTM(data, test_id, respath, train_period, val_period, test_period, trai
     #initialize dataframes for saving performance metrics
     rmse_df=pd.DataFrame(np.zeros((len(training_horizons), len(imputation_horizons))),index=training_horizons,columns=imputation_horizons)
     PI_df=pd.DataFrame(np.zeros((len(training_horizons), len(imputation_horizons))),index=training_horizons,columns=imputation_horizons)
-    
-    for th in training_horizons: #TODO
+    #initialize list to save predictions of best model for each th for plotting
+    preds_test_all=[]
+    for th in training_horizons:
         rmse_all_model_runs=np.zeros((nr_of_model_runs, len(imputation_horizons)))
         PI_all_model_runs=np.zeros((nr_of_model_runs, len(imputation_horizons)))
         #train several times for each forecast horizon
+        best_val_loss=1.0
         for i in range(nr_of_model_runs):
             print(f'\nModel {i} of training horizon {th}') 
             
@@ -79,7 +79,7 @@ def run_LSTM(data, test_id, respath, train_period, val_period, test_period, trai
             model=LSTM_AR(input_size, window_size, neurons, num_lstm_layers)
      
             trainer = Trainer(model,epochs, b_size, weightpath, losslogpath)
-            trainer.fit(data_loader_train,data_loader_val)
+            cur_val_loss=trainer.fit(data_loader_train,data_loader_val)
             ###################
             
             #plot losses
@@ -95,7 +95,6 @@ def run_LSTM(data, test_id, respath, train_period, val_period, test_period, trai
             
             for j, ih in enumerate(imputation_horizons):
                 # print(f'Testing for imputation of {ih} hours')
-                metricspath=os.path.join(respath, f'metrics_{ih}.txt')
                 #create test features and label
                 features_test, labels_test =timeseries_dataset_from_array(X_test_sc, window_size, ih, AR=True)
                 dataset_test, data_loader_test=get_dataloader(features_test, labels_test, batch_size=b_size, shuffle=False)
@@ -119,8 +118,12 @@ def run_LSTM(data, test_id, respath, train_period, val_period, test_period, trai
                 #calculate metrics for current testhorizon
                 rmse_all_model_runs[i, j]=rmse(labels_test_unsc[:len(preds_test),:], preds_test_unsc, savepath=None)
                 PI_all_model_runs[i, j]=PI(labels_test_unsc[:len(preds_test),:], features_test_unsc[:len(preds_test),window_size-1:window_size], preds_test_unsc, savepath=None)
-    
-                    # Create a Bokeh figure for the last model
+
+                if (cur_val_loss<best_val_loss) and (ih==imputation_horizons[-1]): 
+                    best_val_loss=cur_val_loss
+                    preds_test_to_keep=preds_test_unsc
+                
+                # Create a Bokeh figure for the last model
                 if (i%nr_of_model_runs == 0) & (ih==imputation_horizons[-1]):
                     p = figure(x_axis_label='Date', y_axis_label='Water level [m]', title=f'Model {i} TH: {th} IH: {ih}')
                     
@@ -139,15 +142,21 @@ def run_LSTM(data, test_id, respath, train_period, val_period, test_period, trai
         #Calculate final metrics for each training horizon i.e., mean over all model runs
         rmse_df.loc[th][:]=rmse_all_model_runs.mean(axis=0)
         PI_df.loc[th][:]=PI_all_model_runs.mean(axis=0)
+        preds_test_all.append(preds_test_to_keep)
         print(f'\nTrained and tested all models for training horizon: {th}')
             
         
-        print('Yay! Finished simulation')
+    print('Yay! Finished simulation')
 
     #Crate a heatmap of the metrics
-    plot_metrics_heatmap(rmse_df, PI_df, os.path.join(respath, 'metrics.png'))
+    plot_metrics_heatmap(rmse_df, PI_df, os.path.join(os.path.dirname(respath), f'{os.path.basename(respath)}_metrics.png'))
     #save metrics as csv file
     PI_df.columns = ['PI_' + str(col) for col in PI_df.columns]
     rmse_df.columns = ['RMSE_' + str(col) for col in rmse_df.columns]
     metrics_df=pd.concat((rmse_df, PI_df),axis=1)
-    metrics_df.to_csv(os.path.join(respath, 'metrics.csv'))
+    metrics_df.to_csv(os.path.join(os.path.dirname(respath),f'{os.path.basename(respath)}_metrics.csv'))
+    
+    #save predictions of current model configuration for plotting
+    pickle_file_path = os.path.join(os.path.join(os.path.dirname(respath)),f'{os.path.basename(respath)}.pkl')
+    with open(pickle_file_path, 'wb') as pickle_file:
+        pickle.dump([preds_test_all, X_test[window_size:-imputation_horizons[-1]+1]], pickle_file)
