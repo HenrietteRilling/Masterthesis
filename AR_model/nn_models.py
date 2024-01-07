@@ -78,7 +78,10 @@ class LSTM_AR(torch.nn.Module):
         self.window_size = window_size
         self.hidden_size=hidden_size
         self.num_layers=num_layers
-        self.lstm=torch.nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        if num_layers>1:
+            self.dropout=0.2
+        else: self.dropout=0.0
+        self.lstm=torch.nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=self.dropout)
         self.lstmcell=torch.nn.LSTMCell(input_size, hidden_size)
         self.linear=torch.nn.Linear(hidden_size, 1)
     

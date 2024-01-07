@@ -15,7 +15,7 @@ class Trainer():
         self.batchsize=batchsize
         #
         self.optimizer = torch.optim.Adam(model.parameters())
-        self.scheduler=torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=0.5) #exponential decay scheduler of learning rate
+        self.scheduler=torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=0.01) #exponential decay scheduler of learning rate
         #
         self.loss_fn = torch.nn.MSELoss()
         #

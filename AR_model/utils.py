@@ -30,8 +30,6 @@ def rescale_data(data, scaler, input_dim):
 
 #unscale for feed forwards network, output is has different sizes
 def rescale_data_ffn(data, scaler, input_dim):
-    import pdb
-    pdb.set_trace()
     #input data has one dimension, output data 2, scaler expects the same dimensions as the input data therefore, we need to rescale
     data_reshaped=np.zeros((data.shape[1],input_dim))
     #assing data to help array, reshaping tensor form dimensions (batchsize, 1,1) to (batchsize)

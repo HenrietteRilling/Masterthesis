@@ -21,9 +21,9 @@ from plot_utils import cm2inch
 
 
 
-respath=r'./Results'
+respath=r'C:\Users\henri\Desktop\LSTM_preliminary'
 configpath=os.path.join(respath, 'configs.csv')
-
+import pdb
 #Read csv file with model configurations
 with open(configpath, 'r') as csv_file:
     csv_reader = csv.reader(csv_file)
@@ -36,26 +36,32 @@ with open(configpath, 'r') as csv_file:
 plot_h=[48, 168]
 train_h=[1, 12, 24, 48, 164]
 
-for config in config_list:
-    #get path of pkl file for current model configuration
-    pred_pkl_path=os.path.join(respath, f'{os.path.basename(config[0])}.pkl')
-    #Read pickle    
-    with open(pred_pkl_path, 'rb') as pickle_file:
-        data = pickle.load(pickle_file)
+for th in plot_h:    
+    fig, axes = plt.subplots(3,2, figsize=cm2inch((15, 12)), sharey=True)
+    msize=1
+    axs=axes.flatten()
+    colorlist=['darkorange', 'cyan', 'lime']   
+    c=-1
+
+    for config in config_list:
+        #get path of pkl file for current model configuration
+        pred_pkl_path=os.path.join(respath, f'{os.path.basename(config[0])}.pkl')
+        #Read pickle
+        if os.path.exists(pred_pkl_path):    
+            with open(pred_pkl_path, 'rb') as pickle_file:
+                data = pickle.load(pickle_file)
+                c+=1
+        else: continue
+        
+        #Extract data
+        pred_list=data[0]
+        X_test=data[1]
+        
+        #Get id of test station and precipitation station
+        test_id=config[-2]
+        test_prcp=config[-1]
     
-    #Extract data
-    pred_list=data[0]
-    X_test=data[1]
-    
-    #Get id of test station and precipitation station
-    test_id=config[-2]
-    test_prcp=config[-1]
-    
-    for th in plot_h:    
-        fig, axes = plt.subplots(3,2, figsize=cm2inch((15, 12)), sharey=True)
-        msize=1
-        axs=axes.flatten()
-        for i, preds in enumerate(pred_list):
+        for i, preds in enumerate(pred_list[1:]):
             if th ==48:
                 #Zoom for month September:
                 dates=pd.to_datetime(X_test.index)
@@ -123,13 +129,13 @@ for config in config_list:
             if i==0: #define label
                 # Plot water level on the bottom axis
                 ax1.plot(dates[date_mask], X_test[test_id][date_mask], color='blue', label='Observation', linestyle='None', marker='.', ms=msize)
-                ax1.plot(dates[date_mask], TOP1, color='darkorange', label='Prediction', linestyle='solid', lw=0.5, marker='.', ms=msize)#alternative: limegreen, mediumseagreen
+                ax1.plot(dates[date_mask], TOP1, color=colorlist[c], label='Prediction', linestyle='solid', lw=0.5, marker='.', ms=msize)#alternative: limegreen, mediumseagreen
             else:#don't define label anymore
                 ax1.plot(dates[date_mask], X_test[test_id][date_mask], color='blue', linestyle='None', marker='.', ms=msize)
-                ax1.plot(dates[date_mask], TOP1, color='darkorange', linestyle='solid', lw=0.5, marker='.', ms=msize)#alternative: limegreen, mediumseagreen
-            ax1.plot(dates[date_mask], TOP2, color='darkorange', linestyle='solid', lw=0.5, marker='.', ms=msize)
-            ax1.plot(dates[date_mask], TOP3, color='darkorange', linestyle='solid', lw=0.5, marker='.', ms=msize)
-            ax1.plot(dates[date_mask], TOP4, color='darkorange', linestyle='solid', lw=0.5, marker='.', ms=msize)
+                ax1.plot(dates[date_mask], TOP1, color=colorlist[c], linestyle='solid', lw=0.5, marker='.', ms=msize)#alternative: limegreen, mediumseagreen
+            ax1.plot(dates[date_mask], TOP2, color=colorlist[c], linestyle='solid', lw=0.5, marker='.', ms=msize)
+            ax1.plot(dates[date_mask], TOP3, color=colorlist[c], linestyle='solid', lw=0.5, marker='.', ms=msize)
+            ax1.plot(dates[date_mask], TOP4, color=colorlist[c], linestyle='solid', lw=0.5, marker='.', ms=msize)
         
             #plot lines marking TOP
             if i==0: #define label
@@ -177,13 +183,14 @@ for config in config_list:
         fig.supxlabel('Date')
         # fig.legend(loc='upper center', ncol=3, fontsize='medium', frameon=False)
         #remove subplot that isnot needed
-        fig.delaxes(axes[2,1])
+        # fig.delaxes(axes[2,1])
         
         plt.subplots_adjust(left= 0.06, bottom=0,right=0.96, top=1.0, hspace=0.2)
         #adjust space tight layout is taking in windows canva, neede that legend on top and label in bottom are shown. 
         plt.tight_layout(rect=[0.06, 0 ,0.96, 1.0],pad=0.3) #rect: [left, bottom, right, top]
-        plt.savefig(os.path.join(respath, f'{os.path.basename(config[0])}_Imputation_h_{th}.png'), dpi=600)
-        plt.close()
+        # plt.savefig(os.path.join(respath, f'{os.path.basename(config[0])}_Imputation_h_{th}.png'), dpi=600)
+        # plt.close()
+        plt.show()
 
 
 
