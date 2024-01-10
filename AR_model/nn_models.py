@@ -109,7 +109,7 @@ class LSTM_AR(torch.nn.Module):
         ##Autoregressive loop, run one step predictions
         while i<(x_post.shape[1]):
             #get w-t input from features
-            #replace water level observation with latest prediction 
+            #replace water level observation with latest prediction, add precipitation
             feature_for_this_step=torch.cat((out[-1], x_post[:,i,1:]),1).unsqueeze(1)
             _, (hn, cn)=self.lstm(feature_for_this_step, (hn, cn))
             out.append(self.linear(hn[-1]))

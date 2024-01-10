@@ -114,7 +114,6 @@ def run_LSTM(data, test_id, respath, train_period, val_period, test_period, trai
                 preds_test_unsc=train_WL_sc.inverse_transform(preds_test[:,:,0])
                 labels_test_unsc=train_WL_sc.inverse_transform(labels_test[:, :,0]) #include only water level
                 features_test_unsc=train_WL_sc.inverse_transform(features_test[:,:,0]) #needed for PI, inlcude only water level
-                
                 #calculate metrics for current testhorizon
                 rmse_all_model_runs[i, j]=rmse(labels_test_unsc[:len(preds_test),:], preds_test_unsc, savepath=None)
                 PI_all_model_runs[i, j]=PI(labels_test_unsc[:len(preds_test),:], features_test_unsc[:len(preds_test),window_size-1:window_size], preds_test_unsc, savepath=None)
