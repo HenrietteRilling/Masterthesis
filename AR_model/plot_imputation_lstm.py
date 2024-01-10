@@ -21,7 +21,8 @@ from plot_utils import cm2inch
 
 
 
-respath=r'C:\Users\henri\Desktop\LSTM_preliminary'
+# respath=r'C:\Users\henri\Desktop\LSTM_preliminary'
+respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_AR'
 configpath=os.path.join(respath, 'configs.csv')
 #Read csv file with model configurations
 with open(configpath, 'r') as csv_file:
@@ -32,13 +33,13 @@ with open(configpath, 'r') as csv_file:
 
 
 #Constants
-plot_h=[300]
+plot_h=[4*164]
 train_h=[1, 12, 24, 48, 164]
 window=[10, 20, 50]
 
 #plot statics
 msize=1
-colorlist=['darkorange', 'cyan', 'lime', 'yellow', 'magenta']   
+colorlist=['darkorange', 'lightskyblue', 'lime', 'olive', 'darkviolet']   
 
 fig, axes=plt.subplots(3,1,figsize=cm2inch((15, 12)), sharey=True)
 axs=axes.flatten()
@@ -65,30 +66,31 @@ for config in config_list:
     
     #for plot
     ax1=axs[axidx]
+    ax1.set_ylim(49.7, 50.1) #TODO adjust if all TH are shwon
     for th in plot_h:
-        for i, preds in enumerate(pred_list[1:]):
+        for i, preds in enumerate(pred_list): #TODO adust if all TH should be shown
             
             dates=pd.to_datetime(X_test.index)
-            start_date='2022-08-30 00:00:00' #09-06
-            dt_start_date=datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-            end_date=dt_start_date+timedelta(hours=th+100)
-            # end_date='2022-10-02 00:00:00' #09-14
+            #Date starting from which imputation is plotted
+            TOP='2022-04-01 00:00:00' #09-06
+            #convert TOP to datetime string to do more operations on it later
+            dt_start_date=datetime.strptime(TOP, '%Y-%m-%d %H:%M:%S')
+            #define start date such that all warm up windows can be shown
+            start_date=dt_start_date-timedelta(hours=window[-1]+10)
+            #define where plot should finish
+            end_date=dt_start_date+timedelta(hours=th+10)
+            #creat boolean mask for filtering X_test
             date_mask=(dates>=start_date) & (dates<end_date)
-            #convert start dat to datetime string to do more operations on it later
-
             
-            #if TOP: start_date
             #TOP1=np.concatenate(([np.nan],preds_test_unsc[np.argmax(date_mask), :th], np.full(np.count_nonzero(date_mask)-th-1, np.nan)))
-            TOP1idx=np.where(dates=='2022-09-01 00:00:00')[0][0]
+            TOP1idx=np.where(dates==TOP)[0][0]
             beforeTOP1=TOP1idx-np.argmax(date_mask)
             TOP1=np.concatenate((np.full(beforeTOP1+1,np.nan),preds[TOP1idx,:th], np.full((np.count_nonzero(date_mask)-th-beforeTOP1-1),np.nan)))
  
             #add another line showing when there are no more observations in the input                   
             #TOP: '2022-09-11 07:00:00' '2022-09-10 08:00:00'
             
-            TOP2idx=np.where(dates==(datetime.strptime('2022-09-01 00:00:00', '%Y-%m-%d %H:%M:%S')+timedelta(hours=window[axidx])))[0][0]
-            import pdb
-            # pdb.set_trace()
+            TOP2idx=np.where(dates==(datetime.strptime(TOP, '%Y-%m-%d %H:%M:%S')-timedelta(hours=window[axidx])))[0][0]
             if axidx==0:
                 if i==0:
                     ax1.plot(dates[date_mask], X_test[test_id][date_mask], color='blue', label='Observation', linestyle='None', marker='.', ms=msize)
@@ -119,7 +121,6 @@ for config in config_list:
             # Create a second y-axis for precipitation
             ax2 = ax1.twinx()
             ax2.bar(dates[date_mask], -X_test[test_prcp][date_mask], width=0.05, color='lightsteelblue',edgecolor='black') #alternative: cornflowerblue
-            # Set the y-axis tick labels to display without decimal precision
             ax2.tick_params('y', labelsize='medium')
             ax2.set_ylim(-20, 0)
             
@@ -147,8 +148,8 @@ fig.supxlabel('Date')
 plt.subplots_adjust(left= 0.06, bottom=0.0,right=0.96, top=0.85, hspace=0.2)
 # #adjust space tight layout is taking in windows canva, neede that legend on top and label in bottom are shown. 
 plt.tight_layout(rect=[0.06, 0.0 ,0.96, 0.9],pad=0.3) #rect: [left, bottom, right, top]
-    # # plt.savefig(os.path.join(respath, f'{os.path.basename(config[0])}_Imputation_h_{th}.png'), dpi=600)
-        # # plt.close()
+plt.savefig(os.path.join(respath, f'April_Imputation_h_{th}_zoom.png'), dpi=600)
+# plt.close()
         # plt.show()
 
 

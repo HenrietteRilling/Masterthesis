@@ -21,9 +21,10 @@ from plot_utils import cm2inch
 
 
 
-respath=r'C:\Users\henri\Desktop\LSTM_preliminary'
+#respath=r'C:\Users\henri\Desktop\LSTM_preliminary' # old results
+respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_AR'
 configpath=os.path.join(respath, 'configs.csv')
-import pdb
+
 #Read csv file with model configurations
 with open(configpath, 'r') as csv_file:
     csv_reader = csv.reader(csv_file)
@@ -34,7 +35,8 @@ with open(configpath, 'r') as csv_file:
 
 #Constants
 plot_h=[48, 168]
-train_h=[1, 12, 24, 48, 164]
+train_h=[1, 12, 24, 48, 168]
+window=[10, 20, 50]
 
 for th in plot_h:    
     fig, axes = plt.subplots(3,2, figsize=cm2inch((15, 12)), sharey=True)
@@ -61,7 +63,7 @@ for th in plot_h:
         test_id=config[-2]
         test_prcp=config[-1]
     
-        for i, preds in enumerate(pred_list[1:]):
+        for i, preds in enumerate(pred_list):
             if th ==48:
                 #Zoom for month September:
                 dates=pd.to_datetime(X_test.index)
@@ -126,22 +128,22 @@ for th in plot_h:
                 TOP4=np.concatenate((np.full(beforeTOP4+1,np.nan),preds[TOP4idx,:th], np.full((np.count_nonzero(date_mask)-th-beforeTOP4-1),np.nan)))
                                
             ax1=axs[i]
-            if i==0: #define label
-                # Plot water level on the bottom axis
-                ax1.plot(dates[date_mask], X_test[test_id][date_mask], color='blue', label='Observation', linestyle='None', marker='.', ms=msize)
-                ax1.plot(dates[date_mask], TOP1, color=colorlist[c], label='Prediction', linestyle='solid', lw=0.5, marker='.', ms=msize)#alternative: limegreen, mediumseagreen
+            if i==0:
+                if c==0: #define label
+                    # Plot water level on the bottom axis
+                    ax1.plot(dates[date_mask], X_test[test_id][date_mask], color='blue', label='Observation', linestyle='None', marker='.', ms=msize)
+                    ax1.axvline(x=dates[TOP1idx], color='black', linestyle='dotted',lw=1, label="TOP")
+                ax1.plot(dates[date_mask], TOP1, color=colorlist[c], label=f'Prediction W={window[c]} [h]', linestyle='solid', lw=0.5, marker='.', ms=msize)#alternative: limegreen, mediumseagreen
+
             else:#don't define label anymore
                 ax1.plot(dates[date_mask], X_test[test_id][date_mask], color='blue', linestyle='None', marker='.', ms=msize)
                 ax1.plot(dates[date_mask], TOP1, color=colorlist[c], linestyle='solid', lw=0.5, marker='.', ms=msize)#alternative: limegreen, mediumseagreen
+                ax1.axvline(x=dates[TOP1idx], color='black', linestyle='dotted', lw=1)
+
             ax1.plot(dates[date_mask], TOP2, color=colorlist[c], linestyle='solid', lw=0.5, marker='.', ms=msize)
             ax1.plot(dates[date_mask], TOP3, color=colorlist[c], linestyle='solid', lw=0.5, marker='.', ms=msize)
             ax1.plot(dates[date_mask], TOP4, color=colorlist[c], linestyle='solid', lw=0.5, marker='.', ms=msize)
         
-            #plot lines marking TOP
-            if i==0: #define label
-                ax1.axvline(x=dates[TOP1idx], color='black', linestyle='dotted',lw=1, label="TOP")
-            else:
-                ax1.axvline(x=dates[TOP1idx], color='black', linestyle='dotted', lw=1)
             ax1.axvline(x=dates[TOP2idx], color='black', linestyle='dotted', lw=1)
             ax1.axvline(x=dates[TOP3idx], color='black', linestyle='dotted', lw=1)
             ax1.axvline(x=dates[TOP4idx], color='black', linestyle='dotted', lw=1)
@@ -151,6 +153,7 @@ for th in plot_h:
             formatter = mdates.ConciseDateFormatter(locator)
             ax1.xaxis.set_major_locator(locator)
             ax1.xaxis.set_major_formatter(formatter)
+            # ax1.set_ylim(49.7)
             
             #remove xlables on subplots that are not in the bottom line
             if i in [0,1,2]:
@@ -175,22 +178,21 @@ for th in plot_h:
                 ax2.set_yticklabels([])
         
             ax1.set_title(f'TH-{train_h[i]}', loc='left', fontsize='medium')
-            
 
-        fig.legend(loc='upper center', ncol=1, fontsize='medium', frameon=True, fancybox=False, edgecolor='black', bbox_to_anchor=(0.65, 0.36))  
-        fig.text(0.02, 0.5, 'Water level [m]', va='center', rotation='vertical', fontsize='large')
-        fig.text(0.96, 0.5, 'Precipitation [mm/h]', va='center',rotation=-90, fontsize='large')
-        fig.supxlabel('Date')
-        # fig.legend(loc='upper center', ncol=3, fontsize='medium', frameon=False)
-        #remove subplot that isnot needed
-        # fig.delaxes(axes[2,1])
-        
-        plt.subplots_adjust(left= 0.06, bottom=0,right=0.96, top=1.0, hspace=0.2)
-        #adjust space tight layout is taking in windows canva, neede that legend on top and label in bottom are shown. 
-        plt.tight_layout(rect=[0.06, 0 ,0.96, 1.0],pad=0.3) #rect: [left, bottom, right, top]
-        # plt.savefig(os.path.join(respath, f'{os.path.basename(config[0])}_Imputation_h_{th}.png'), dpi=600)
-        # plt.close()
-        plt.show()
+    fig.legend(loc='upper center', ncol=1, fontsize='medium', frameon=True, fancybox=False, edgecolor='black', bbox_to_anchor=(0.7, 0.36))  
+    fig.text(0.02, 0.5, 'Water level [m]', va='center', rotation='vertical', fontsize='large')
+    fig.text(0.96, 0.5, 'Precipitation [mm/h]', va='center',rotation=-90, fontsize='large')
+    fig.supxlabel('Date')
+    # fig.legend(loc='upper center', ncol=3, fontsize='medium', frameon=False)
+    #remove subplot that isnot needed
+    fig.delaxes(axes[2,1])
+    
+    plt.subplots_adjust(left= 0.06, bottom=0,right=0.96, top=1.0, hspace=0.2)
+    #adjust space tight layout is taking in windows canva, neede that legend on top and label in bottom are shown. 
+    plt.tight_layout(rect=[0.06, 0 ,0.96, 1.0],pad=0.3) #rect: [left, bottom, right, top]
+    plt.savefig(os.path.join(respath, f'Imputation_h_{th}_w_windows.png'), dpi=600)
+    plt.close()
+    # plt.show()
 
 
 
