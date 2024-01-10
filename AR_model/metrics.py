@@ -34,11 +34,13 @@ def PI(y, ymin1, y_hat, savepath):
     Persistence Index
     compares the sum of squared error to the error that would occur if the value was forecast as the previous observed value.
     y = true observations
-    ymin1 = true observations, shifted by one time step, onlyt first value is needed
+    ymin1 = previous observed value
     y_hat = predictions
     '''
-    #crate array only containing first observation
-    ymin1_0=np.tile(ymin1[:,:1],ymin1.shape[1])
+    #crate array with lenght of predictions, only containing first observation i.e., previous value is used as forecast for whole imputation horizon
+    import pdb
+    pdb.set_trace()
+    ymin1_0=np.tile(ymin1[:,:1],y.shape[1]) #np.tile(A, reps) A= value to be repeated, reps = number of repetitions
     SSE_pred=np.sum((y-y_hat)**2)
     SSE_prev=np.sum((y-ymin1_0)**2)
     PI=1-(SSE_pred/SSE_prev) 
