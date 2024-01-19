@@ -66,13 +66,13 @@ for config in config_list:
     
     #for plot
     ax1=axs[axidx]
-    ax1.set_ylim(49.7, 50.1) #TODO adjust if all TH are shwon
+    ax1.set_ylim(49.6, 50) #TODO adjust if all TH are shwon
     for th in plot_h:
         for i, preds in enumerate(pred_list): #TODO adust if all TH should be shown
             
             dates=pd.to_datetime(X_test.index)
             #Date starting from which imputation is plotted
-            TOP='2022-04-01 00:00:00' #09-06
+            TOP='2022-07-15 00:00:00' #09-06
             #convert TOP to datetime string to do more operations on it later
             dt_start_date=datetime.strptime(TOP, '%Y-%m-%d %H:%M:%S')
             #define start date such that all warm up windows can be shown
@@ -131,7 +131,7 @@ for config in config_list:
             ax2.set_yticklabels([f'{abs(y):.0f}' for y in yticks])
             # if i in [0,2,4]: #only show y-tick lables of right column
             #     ax2.set_yticklabels([])
-    ax1.set_title(f'Window: {window[axidx]} [h]', loc='left', fontsize='medium')
+    ax1.set_title(f'W={window[axidx]} h', loc='left', fontsize='medium')
 fig.legend(loc='upper center', ncol=4, fontsize='medium', frameon=False)
     # fig.legend()
     
@@ -148,7 +148,7 @@ fig.supxlabel('Date')
 plt.subplots_adjust(left= 0.06, bottom=0.0,right=0.96, top=0.85, hspace=0.2)
 # #adjust space tight layout is taking in windows canva, neede that legend on top and label in bottom are shown. 
 plt.tight_layout(rect=[0.06, 0.0 ,0.96, 0.9],pad=0.3) #rect: [left, bottom, right, top]
-plt.savefig(os.path.join(respath, f'April_Imputation_h_{th}_zoom.png'), dpi=600)
+# plt.savefig(os.path.join(respath, f'July_Imputation_h_{th}_zoom.png'), dpi=600)
 # plt.close()
         # plt.show()
 

@@ -133,7 +133,7 @@ for th in plot_h:
                     # Plot water level on the bottom axis
                     ax1.plot(dates[date_mask], X_test[test_id][date_mask], color='blue', label='Observation', linestyle='None', marker='.', ms=msize)
                     ax1.axvline(x=dates[TOP1idx], color='black', linestyle='dotted',lw=1, label="TOP")
-                ax1.plot(dates[date_mask], TOP1, color=colorlist[c], label=f'Prediction W={window[c]} [h]', linestyle='solid', lw=0.5, marker='.', ms=msize)#alternative: limegreen, mediumseagreen
+                ax1.plot(dates[date_mask], TOP1, color=colorlist[c], label=f'Prediction W={window[c]} h', linestyle='solid', lw=0.5, marker='.', ms=msize)#alternative: limegreen, mediumseagreen
 
             else:#don't define label anymore
                 ax1.plot(dates[date_mask], X_test[test_id][date_mask], color='blue', linestyle='None', marker='.', ms=msize)
@@ -153,7 +153,7 @@ for th in plot_h:
             formatter = mdates.ConciseDateFormatter(locator)
             ax1.xaxis.set_major_locator(locator)
             ax1.xaxis.set_major_formatter(formatter)
-            # ax1.set_ylim(49.7)
+            ax1.set_ylim(bottom=49.7, top=50.2)
             
             #remove xlables on subplots that are not in the bottom line
             if i in [0,1,2]:
@@ -190,7 +190,7 @@ for th in plot_h:
     plt.subplots_adjust(left= 0.06, bottom=0,right=0.96, top=1.0, hspace=0.2)
     #adjust space tight layout is taking in windows canva, neede that legend on top and label in bottom are shown. 
     plt.tight_layout(rect=[0.06, 0 ,0.96, 1.0],pad=0.3) #rect: [left, bottom, right, top]
-    plt.savefig(os.path.join(respath, f'Imputation_h_{th}_w_windows.png'), dpi=600)
+    plt.savefig(os.path.join(respath, f'Imputation_h_{th}_w_windows_zoom.png'), dpi=600)
     plt.close()
     # plt.show()
 

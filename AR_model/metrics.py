@@ -38,8 +38,6 @@ def PI(y, ymin1, y_hat, savepath):
     y_hat = predictions
     '''
     #crate array with lenght of predictions, only containing first observation i.e., previous value is used as forecast for whole imputation horizon
-    import pdb
-    pdb.set_trace()
     ymin1_0=np.tile(ymin1[:,:1],y.shape[1]) #np.tile(A, reps) A= value to be repeated, reps = number of repetitions
     SSE_pred=np.sum((y-y_hat)**2)
     SSE_prev=np.sum((y-ymin1_0)**2)

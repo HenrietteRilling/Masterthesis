@@ -2,14 +2,14 @@
     "models": ["lstm"],
 
     "test_station": "ns Uldumkær",
-    "prcp_station": "05225",
+    "prcp_station": "None",
 	
     "train_period": ["2012-01-01","2018-12-31"],
     "val_period": ["2019-01-01","2021-12-31"],
     "test_period": ["2022-01-01","2022-12-31"],
 
-    "training_horizon": [1],
-    "imputation_horizon": [1],
+    "training_horizon": [3],
+    "imputation_horizon": [4],
     "plot_horizon": [48, 168],
 
     "epochs": 1,
