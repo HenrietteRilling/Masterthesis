@@ -132,3 +132,17 @@ def get_dataloader(features, labels, batch_size, shuffle=True):
     dataset = torch.utils.data.TensorDataset(torch.tensor(features).float(), torch.tensor(labels).float()) # insert into tensor dataset, .float() as LSTM needs torch.floa32 as input
     data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle) # insert dataset into data loader
     return dataset, data_loader
+
+# Thesis max size is 15.0 x 24.14 cm. Borrowed from https://zenodo.org/records/6726556 plot_utils
+def cm2inch(*tupl: tuple):
+    """
+    Converts from cm to inches when defining figure sizes. Normal A4 page is 21 x 29.7 cm.
+    
+    Args
+     tupl: Tuple containing (width, height) in cm
+    """
+    inch = 2.54
+    if isinstance(tupl[0], tuple):
+        return tuple(i/inch for i in tupl[0])
+    else:
+        return tuple(i/inch for i in tupl)
