@@ -3,6 +3,7 @@
 
     "test_station": "ns Uldumkær",
     "prcp_station": "05225",
+    "other_station": "None",
 	
     "train_period": ["2012-01-01","2018-12-31"],
     "val_period": ["2019-01-01","2021-12-31"],

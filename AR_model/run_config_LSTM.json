@@ -2,22 +2,23 @@
     "models": ["lstm"],
 
     "test_station": "ns Uldumkær",
-    "prcp_station": "None",
+    "prcp_station": "05225",
+    "other_station": "Brestenbro",
 	
-    "train_period": ["2012-01-01","2018-12-31"],
-    "val_period": ["2019-01-01","2021-12-31"],
-    "test_period": ["2022-01-01","2022-12-31"],
+    "train_period": ["2015-10-31","2018-10-31"],
+    "val_period": ["2018-11-01","2019-10-31"],
+    "test_period": ["2020-11-01","2021-10-31"],
 
-    "training_horizon": [3],
-    "imputation_horizon": [4],
+    "training_horizon": [1, 12, 24, 48, 164],
+    "imputation_horizon": [1, 12, 24, 48, 168, 672],
     "plot_horizon": [48, 168],
 
-    "epochs": 1,
-    "batch_size": [999],
-    "n_models": 2,
+    "epochs": 150,
+    "batch_size": [1000],
+    "n_models": 5,
 
     "neurons": [25],
-    "layers": [2],
-    "window_size": [10, 11]
+    "layers": [1],
+    "window_size": [10]
 
 }
