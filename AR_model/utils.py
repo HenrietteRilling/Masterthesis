@@ -225,7 +225,6 @@ def load_data(WL_stat, prcp_stat):
     
         X_WL=get_test_data(test_id, WL_wo_anom)
     
-        #merge precipitation and WL data, select overlapping timeperiod
         X=X_WL
         return X, test_id
        
