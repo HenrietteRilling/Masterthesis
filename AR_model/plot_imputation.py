@@ -22,8 +22,11 @@ from plot_utils import cm2inch
 
 
 #respath=r'C:\Users\henri\Desktop\LSTM_preliminary' # old results
-respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_AR'
+# respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_wo_prcp'
+#respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_AR'
+respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_AR_Bjerrinbro_station'
 configpath=os.path.join(respath, 'configs.csv')
+save=True
 
 #Read csv file with model configurations
 with open(configpath, 'r') as csv_file:
@@ -62,6 +65,8 @@ for th in plot_h:
         #Get id of test station and precipitation station
         test_id=config[-2]
         test_prcp=config[-1]
+        
+        
     
         for i, preds in enumerate(pred_list):
             if th ==48:
@@ -153,7 +158,10 @@ for th in plot_h:
             formatter = mdates.ConciseDateFormatter(locator)
             ax1.xaxis.set_major_locator(locator)
             ax1.xaxis.set_major_formatter(formatter)
-            ax1.set_ylim(bottom=49.7, top=50.2)
+            if test_id =='211711':
+                ax1.set_ylim(bottom=49.7, top=50.2) #TODO
+            else:
+                ax1.set_ylim(bottom=3, top=4) #TODO
             
             #remove xlables on subplots that are not in the bottom line
             if i in [0,1,2]:
@@ -161,27 +169,31 @@ for th in plot_h:
                 
             #set fontzise of yaxis
             ax1.tick_params('y', labelsize='medium')
-               
-            # Create a second y-axis for precipitation
-            ax2 = ax1.twinx()
-            ax2.bar(dates[date_mask], -X_test[test_prcp][date_mask], width=0.05, color='lightsteelblue',edgecolor='black') #alternative: cornflowerblue
-            # Set the y-axis tick labels to display without decimal precision
-            ax2.tick_params('y', labelsize='medium')
-            ax2.set_ylim(-20, 0)
+            if test_prcp == 'None':
+                continue
             
-            # Invert the tick labels on the second y-axis such that they are displayed positive
-            yticks = ax2.get_yticks()
-            ax2.set_yticks(yticks)
-            #make yticks label positive and without decimals
-            ax2.set_yticklabels([f'{abs(y):.0f}' for y in yticks])
-            if i in [0,2,4]: #only show y-tick lables of right column
-                ax2.set_yticklabels([])
+            else:
+                # Create a second y-axis for precipitation
+                ax2 = ax1.twinx()
+                ax2.bar(dates[date_mask], -X_test[test_prcp][date_mask], width=0.05, color='lightsteelblue',edgecolor='black') #alternative: cornflowerblue
+                # Set the y-axis tick labels to display without decimal precision
+                ax2.tick_params('y', labelsize='medium')
+                ax2.set_ylim(-20, 0)
+                
+                # Invert the tick labels on the second y-axis such that they are displayed positive
+                yticks = ax2.get_yticks()
+                ax2.set_yticks(yticks)
+                #make yticks label positive and without decimals
+                ax2.set_yticklabels([f'{abs(y):.0f}' for y in yticks])
+                if i in [0,2,4]: #only show y-tick lables of right column
+                    ax2.set_yticklabels([])
         
             ax1.set_title(f'TH-{train_h[i]}', loc='left', fontsize='medium')
 
     fig.legend(loc='upper center', ncol=1, fontsize='medium', frameon=True, fancybox=False, edgecolor='black', bbox_to_anchor=(0.7, 0.36))  
     fig.text(0.02, 0.5, 'Water level [m]', va='center', rotation='vertical', fontsize='large')
-    fig.text(0.96, 0.5, 'Precipitation [mm/h]', va='center',rotation=-90, fontsize='large')
+    if not test_prcp =='None':
+        fig.text(0.96, 0.5, 'Precipitation [mm/h]', va='center',rotation=-90, fontsize='large')
     fig.supxlabel('Date')
     # fig.legend(loc='upper center', ncol=3, fontsize='medium', frameon=False)
     #remove subplot that isnot needed
@@ -190,8 +202,9 @@ for th in plot_h:
     plt.subplots_adjust(left= 0.06, bottom=0,right=0.96, top=1.0, hspace=0.2)
     #adjust space tight layout is taking in windows canva, neede that legend on top and label in bottom are shown. 
     plt.tight_layout(rect=[0.06, 0 ,0.96, 1.0],pad=0.3) #rect: [left, bottom, right, top]
-    plt.savefig(os.path.join(respath, f'Imputation_h_{th}_w_windows_zoom.png'), dpi=600)
-    plt.close()
+    if save:
+        plt.savefig(os.path.join(respath, f'Imputation_h_{th}_w_windows_zoom.png'), dpi=600)
+        plt.close()
     # plt.show()
 
 
