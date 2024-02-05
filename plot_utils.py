@@ -42,12 +42,4 @@ def plot_losses(respath):
     plt.ylabel('MSE loss')
 
 
-### NOT YET WORKING ####    
-def datetime_xaxis(start, end):
-    # Generate datetime range with hourly frequency
-    date_range = [start + timedelta(hours=i) for i in range(int((end - start).total_seconds() / 3600) + 1)]
-    
-    # Convert datetime objects to strings for plotting
-    date_strings = [date.strftime('%Y-%m-%d %H') for date in date_range]
-    return date_strings
 
