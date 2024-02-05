@@ -315,7 +315,7 @@ fig.legend(loc='upper center', ncol=2, fontsize='medium', frameon=False, markers
 plt.subplots_adjust(left= 0.02, bottom=0.02,right=1.0, top=0.9, hspace=0.2)
 #adjust space tight layout is taking in windows canva, neede that legend on top and label in bottom are shown. 
 plt.tight_layout(rect=[0.02, 0.02 ,1.0, 0.9],pad=0.3) #rect: [left, bottom, right, top]
-plt.savefig(os.path.join(respath, 'LSTM_TH1_IH1_error.png'), dpi=600)
+# plt.savefig(os.path.join(respath, 'LSTM_TH1_IH1_error.png'), dpi=600)
 
 
 
@@ -329,4 +329,4 @@ plt.ylabel('Residual [m]', fontsize='large')
 plt.xticks(fontsize='medium')
 plt.yticks(fontsize='medium')
 plt.tight_layout()
-plt.savefig(os.path.join(respath, 'LSTM_TH1_IH1_res_scatter.png'), dpi=600)
+# plt.savefig(os.path.join(respath, 'LSTM_TH1_IH1_res_scatter.png'), dpi=600)
