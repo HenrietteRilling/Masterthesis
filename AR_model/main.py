@@ -23,8 +23,6 @@ if __name__ == '__main__':
     configs_tested=[]
     #train models
     #set-up if there is only 1 or 2 input features (WL and precipitation )
-    import pdb
-    pdb.set_trace()
     for model in config['models']:
         #load data
         X, test_id=load_data(config['test_station'], config['prcp_station'])
@@ -58,3 +56,9 @@ if __name__ == '__main__':
                                       )
                             configs_tested.append([respath, model, window, batch_size, neurons, nr_layers, test_id, config['prcp_station'], config['other_station']])
                             print('Finished config')
+   
+    #Save configs in csv file
+    csv_file_path = './Results/configs.csv'    
+    with open(csv_file_path, 'w', newline='') as csv_file:
+        csv_writer = csv.writer(csv_file)
+        [csv_writer.writerow(row) for row in configs_tested]
