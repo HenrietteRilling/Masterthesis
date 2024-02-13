@@ -4,6 +4,8 @@
     "test_station": "ns Uldumkær",
     "prcp_station": "05225",
     "other_station": "Brestenbro",
+
+    "time_encoding": "True",
 	
     "train_period": ["2015-10-31","2018-10-31"],
     "val_period": ["2018-11-01","2019-10-31"],

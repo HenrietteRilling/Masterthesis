@@ -9,7 +9,7 @@ import json
 import csv
 import pandas as pd
 
-from utils import load_data
+from utils import load_data, time_encoding
 from run_sim_LSTM import run_LSTM
 
 
@@ -37,8 +37,13 @@ if __name__ == '__main__':
             #merge data
             X=pd.concat([X, X2], axis=1)
             #free memory
-            del X2            
+            del X2
             
+        if config['time_encoding']=='True':
+            X2=time_encoding(X.copy())
+            X=pd.concat([X, X2], axis=1)
+            del X2
+
         if model=='lstm':
             for window in config['window_size']:
                 for batch_size in config['batch_size']:

@@ -14,6 +14,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 def scale_data(data):
+    import pdb
+    pdb.set_trace()
     scaler=MinMaxScaler()
     scaled_data=scaler.fit_transform(data)
     return scaled_data, scaler
@@ -41,7 +43,28 @@ def rescale_data_ffn(data, scaler, input_dim):
 # Eventually return only WL data of interest rescaled_data[:,0]
 
 
-
+def time_encoding(df):
+    
+    '''
+    Create time-encoding for season of the year using sine and cosine functions.
+    Input: df with timeindex
+    Output: df with scaled time-encoding as features
+    '''
+    
+    columns=df.columns
+    #get month of the observation
+    df['month']=df.index.month
+    #save current column names for removing not needed columns after calculation of sin + cos
+    columns=df.columns
+    #caluculate cyclical time encoding
+    df['sin']=np.sin(2 * np.pi * (df['month']-1)/max(df['month']))
+    df['cos']=np.cos(2 * np.pi * (df['month']-1)/max(df['month']))
+    #delete unneeded data
+    df.drop(columns=columns, inplace=True)
+    #scale data to [0,1]
+    scaled_df,_=scale_data(df.to_numpy())
+    df[['sin', 'cos']]=scaled_df
+    return df
 
 
 def _get_labelled_window(windowed_data, horizon: int):
