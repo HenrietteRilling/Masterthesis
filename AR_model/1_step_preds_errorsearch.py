@@ -46,7 +46,7 @@ colorlist=['darkorange', 'lightskyblue', 'lime', 'olive', 'darkviolet']
 
 axidx=-1
 
-for config in config_list[:1]:
+for config in config_list[2:3]:
     #get path of pkl file for current model configuration
     pred_pkl_path=os.path.join(respath, f'{os.path.basename(config[0])}.pkl')
     #Read pickle
@@ -67,9 +67,9 @@ for config in config_list[:1]:
 
 X_test_rain_array=X_test[[test_prcp]].to_numpy()
 
-no_prcp=False
+no_prcp=True
 if no_prcp:
-    respath=r'C:\Users\henri\Desktop\LSTM_prelim_2'
+    respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_wo_prcp'
     configpath=os.path.join(respath, 'configs.csv')
     #Read csv file with model configurations
     with open(configpath, 'r') as csv_file:
@@ -79,7 +79,7 @@ if no_prcp:
         config_list = list(csv_reader)
     
     
-    for config in config_list[:1]:
+    for config in config_list[1:2]:
         #get path of pkl file for current model configuration
         pred_pkl_path=os.path.join(respath, f'{os.path.basename(config[0])}.pkl')
         #Read pickle
@@ -315,7 +315,7 @@ fig.legend(loc='upper center', ncol=2, fontsize='medium', frameon=False, markers
 plt.subplots_adjust(left= 0.02, bottom=0.02,right=1.0, top=0.9, hspace=0.2)
 #adjust space tight layout is taking in windows canva, neede that legend on top and label in bottom are shown. 
 plt.tight_layout(rect=[0.02, 0.02 ,1.0, 0.9],pad=0.3) #rect: [left, bottom, right, top]
-# plt.savefig(os.path.join(respath, 'LSTM_TH1_IH1_error.png'), dpi=600)
+plt.savefig(os.path.join(respath, 'LSTM_TH1_IH1_error.png'), dpi=600)
 
 
 
@@ -329,4 +329,4 @@ plt.ylabel('Residual [m]', fontsize='large')
 plt.xticks(fontsize='medium')
 plt.yticks(fontsize='medium')
 plt.tight_layout()
-# plt.savefig(os.path.join(respath, 'LSTM_TH1_IH1_res_scatter.png'), dpi=600)
+plt.savefig(os.path.join(respath, 'LSTM_TH1_IH1_res_scatter.png'), dpi=600)
