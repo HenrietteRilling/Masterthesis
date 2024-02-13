@@ -167,9 +167,9 @@ if __name__ == "__main__":
     # for col in WL.columns:
     #     WL_wo_anom[col][np.abs(zscore[col])>threshold]=np.nan
 
-    rows=7
-    cols=3
-    plot_water_level_subplot(WL, rows, cols, station_id_to_name)
+    # rows=7
+    # cols=3
+    # plot_water_level_subplot(WL, rows, cols, station_id_to_name)
 #     # plot_water_level(WL_wo_anom[['211711']], station_id_to_name.get('211711'))
 
 
@@ -186,10 +186,37 @@ if __name__ == "__main__":
 #     plot_water_level_bokeh(WL[[col]],  station_id_to_name.get(col))        
  
    #####################Precipitation##############################
-    prcp=get_prcp_data(r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\SVK', r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\DMI_Climate_Data_prcp', join=True)
+    # prcp=get_prcp_data(r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\SVK', r'C:\Users\henri\Documents\Universität\Masterthesis\DMI_data\DMI_Climate_Data_prcp', join=True)
     
     # prcp.columns=prcp.columns.str.lstrip('0')
     # # savepath=r'C:\Users\henri\Documents\Universität\Masterthesis\Report\Prcp_all_stations2.png'
     # plot_prcp(prcp, 4, 3)
-
     
+    #PLot for Randers Bro
+    # station='21006207'
+    # fig, ax=plt.subplots(1,1,figsize=cm2inch((15,7)))
+    # ax.plot(WL['2020-04-01':'2020-05-01']['21006207'], color='blue')
+    # ax.set_title(f'{station_id_to_name.get(station)}', fontsize='small')
+    # ax.tick_params(axis='x', labelsize='small')
+    # ax.tick_params(axis='y', labelsize='small')
+    # locator = mdates.AutoDateLocator(minticks=3, maxticks=4)
+    # # formatter = mdates.ConciseDateFormatter(locator)
+    # ax.xaxis.set_major_locator(locator)   
+    # ax.set_xlabel('Date', fontsize='medium')
+    # ax.set_ylabel('Water level [m]', fontsize='medium')
+    # plt.savefig(r'C:\Users\henri\Documents\Universität\Masterthesis\Report\RandersBro.png', dpi=300)
+    
+    # Plot for Randers Bro
+    station='21006207'
+    fig, ax=plt.subplots(1,1,figsize=cm2inch((15,7)))
+    ax.plot(WL['2020-04-01':'2020-05-15'][station], color='blue')
+    ax.set_title(f'{station_id_to_name.get(station)}', fontsize='medium')
+    ax.tick_params(axis='x', labelsize='small')
+    ax.tick_params(axis='y', labelsize='small')
+    locator = mdates.AutoDateLocator(minticks=3, maxticks=4)
+    # formatter = mdates.ConciseDateFormatter(locator)
+    ax.xaxis.set_major_locator(locator)   
+    ax.set_xlabel('Date', fontsize='medium')
+    ax.set_ylabel('Water level [m]', fontsize='medium')
+    plt.tight_layout()
+    plt.savefig(r'C:\Users\henri\Documents\Universität\Masterthesis\Report\RandersBro2.png', dpi=300)
