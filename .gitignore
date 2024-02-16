@@ -2,5 +2,6 @@ __pycache__/
 .ipynb_checkpoints/
 211201_AR_model/
 231129_AR_model/
-AR_model/results*/
-AR_model/Data/
+Model/results*/
+Model/Data/
+Archive*/
