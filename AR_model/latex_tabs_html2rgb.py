@@ -19,7 +19,7 @@ def html2rgb(match):
 
 if __name__=="__main__":
     #get paths to folder and txt file with tables
-    filepath=r'C:\Users\henri\Documents\Universität\Masterthesis\Report\Table_latex_conversion\LSTM_TE'
+    filepath=r'C:\Users\henri\Documents\Universität\Masterthesis\Report\Table_latex_conversion\LSTM_2stations'
     alltablepaths=glob.glob(os.path.join(filepath, "*.txt"))
     for path in alltablepaths:
         #read table data

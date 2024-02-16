@@ -18,15 +18,15 @@ from datetime import datetime, timedelta
 from plot_utils import cm2inch
 
 
-respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_TE'
+# respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_TE'
 #respath=r'C:\Users\henri\Desktop\LSTM_preliminary' # old results
 # respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_wo_prcp'
 #respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_AR'
 # respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_AR_Bjerrinbro_station'
-# respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_2stations'
+respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_2stations'
 
 configpath=os.path.join(respath, 'configs.csv')
-save=False
+save=True
 #choose if plots should be zoomed or not (zoom/fullsize)
 scale='zoom'
 
@@ -40,7 +40,7 @@ with open(configpath, 'r') as csv_file:
 
 
 #Constants
-plot_h=[48, 168]
+plot_h=[48]
 train_h=[1, 12, 24, 48, 168]
 window=[10, 20, 50]
 
@@ -87,63 +87,63 @@ for th in plot_h:
             if th ==48:
                 #Zoom for month September:
                 dates=pd.to_datetime(X_test.index)
-                start_date='2022-09-03 00:00:00' #09-06
-                end_date='2022-09-13 00:00:00' #09-14
+                start_date='2021-09-07 00:00:00' #if not two stations: 2021-09-03 00:00:00
+                end_date='2021-09-15 00:00:00' #2021-09-13 00:00:00
                 date_mask=(dates>=start_date) & (dates<end_date)
                 #convert start dat to datetime string to do more operations on it later
                 dt_start_date=datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
                 
                 #if TOP: start_date
                 #TOP1=np.concatenate(([np.nan],preds_test_unsc[np.argmax(date_mask), :th], np.full(np.count_nonzero(date_mask)-th-1, np.nan)))
-                TOP1idx=np.where(dates=='2022-09-04 00:00:00')[0][0]
+                TOP1idx=np.where(dates=='2021-09-08 00:00:00')[0][0]
                 beforeTOP1=TOP1idx-np.argmax(date_mask)
                 TOP1=np.concatenate((np.full(beforeTOP1+1,np.nan),preds[TOP1idx,:th], np.full((np.count_nonzero(date_mask)-th-beforeTOP1-1),np.nan)))
                         
                 #TOP: '2022-09-11 07:00:00' '2022-09-10 08:00:00'
                 # TOP2idx=np.where(dates==(dt_start_date+timedelta(days=7)))[0][0]
-                TOP2idx=np.where(dates=='2022-09-07 00:00:00')[0][0]
+                TOP2idx=np.where(dates=='2021-09-11 00:00:00')[0][0]
                 beforeTOP2=TOP2idx-np.argmax(date_mask)
                 TOP2=np.concatenate((np.full(beforeTOP2+1,np.nan),preds[TOP2idx,:th], np.full((np.count_nonzero(date_mask)-th-beforeTOP2-1),np.nan)))
                 
                 # TOP: '2022-09-10 00:00:00' 
                 TOP3idx=np.where(dates==(dt_start_date+timedelta(days=13)))[0][0]
-                TOP3idx=np.where(dates=='2022-09-08 21:00:00')[0][0]
+                TOP3idx=np.where(dates=='2021-09-12 21:00:00')[0][0]
                 beforeTOP3=TOP3idx-np.argmax(date_mask)
                 TOP3=np.concatenate((np.full(beforeTOP3+1,np.nan),preds[TOP3idx,:th], np.full((np.count_nonzero(date_mask)-th-beforeTOP3-1),np.nan)))
                 
                 # #TOP '2022-09-08 12:00:00'
-                TOP4idx=np.where(dates=='2022-09-10 07:00:00')[0][0]
+                TOP4idx=np.where(dates=='2021-09-10 07:00:00')[0][0]
                 beforeTOP4=TOP4idx-np.argmax(date_mask)
                 TOP4=np.concatenate((np.full(beforeTOP4+1,np.nan),preds[TOP4idx,:th], np.full((np.count_nonzero(date_mask)-th-beforeTOP4-1),np.nan)))
             if th ==168:
                 #Zoom for month September:
                 dates=pd.to_datetime(X_test.index)
-                start_date='2022-03-31 00:00:00' #09-06
-                end_date='2022-04-24 00:00:00' #09-14
+                start_date='2021-04-07 00:00:00' #09-06
+                end_date='2021-04-26 00:00:00' #09-14
                 date_mask=(dates>=start_date) & (dates<end_date)
                 #convert start dat to datetime string to do more operations on it later
                 dt_start_date=datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
                 
                 #if TOP: start_date
                 #TOP1=np.concatenate(([np.nan],preds_test_unsc[np.argmax(date_mask), :th], np.full(np.count_nonzero(date_mask)-th-1, np.nan)))
-                TOP1idx=np.where(dates=='2022-04-01 00:00:00')[0][0]
+                TOP1idx=np.where(dates=='2021-04-08 00:00:00')[0][0]
                 beforeTOP1=TOP1idx-np.argmax(date_mask)
                 TOP1=np.concatenate((np.full(beforeTOP1+1,np.nan),preds[TOP1idx,:th], np.full((np.count_nonzero(date_mask)-th-beforeTOP1-1),np.nan)))
                         
                 #TOP: '2022-09-11 07:00:00' '2022-09-10 08:00:00'
                 # TOP2idx=np.where(dates==(dt_start_date+timedelta(days=7)))[0][0]
-                TOP2idx=np.where(dates=='2022-04-08 00:00:00')[0][0]
+                TOP2idx=np.where(dates=='2021-04-09 12:00:00')[0][0]
                 beforeTOP2=TOP2idx-np.argmax(date_mask)
                 TOP2=np.concatenate((np.full(beforeTOP2+1,np.nan),preds[TOP2idx,:th], np.full((np.count_nonzero(date_mask)-th-beforeTOP2-1),np.nan)))
                 
                 # TOP: '2022-09-10 00:00:00' 
                 # TOP3idx=np.where(dates==(dt_start_date+timedelta(days=13)))[0][0]
-                TOP3idx=np.where(dates=='2022-04-15 00:00:00')[0][0]
+                TOP3idx=np.where(dates=='2021-04-11 23:00:00')[0][0]
                 beforeTOP3=TOP3idx-np.argmax(date_mask)
                 TOP3=np.concatenate((np.full(beforeTOP3+1,np.nan),preds[TOP3idx,:th], np.full((np.count_nonzero(date_mask)-th-beforeTOP3-1),np.nan)))
                 
                 # #TOP '2022-09-08 12:00:00'
-                TOP4idx=np.where(dates=='2022-04-04 11:00:00')[0][0]
+                TOP4idx=np.where(dates=='2021-04-18 00:00:00')[0][0]
                 beforeTOP4=TOP4idx-np.argmax(date_mask)
                 TOP4=np.concatenate((np.full(beforeTOP4+1,np.nan),preds[TOP4idx,:th], np.full((np.count_nonzero(date_mask)-th-beforeTOP4-1),np.nan)))
                                
@@ -174,7 +174,7 @@ for th in plot_h:
             ax1.xaxis.set_major_locator(locator)
             ax1.xaxis.set_major_formatter(formatter)
             if test_id =='211711' and scale=='zoom':
-                ax1.set_ylim(bottom=49.7, top=50.2) #TODO
+                ax1.set_ylim(bottom=49.8, top=50.2) #TODO
             elif test_id !='211711' and scale=='zoom':
                 ax1.set_ylim(bottom=3, top=4) #TODO
             
@@ -210,7 +210,7 @@ for th in plot_h:
     if not test_prcp =='None':
         fig.text(0.96, 0.5, 'Precipitation [mm/h]', va='center',rotation=-90, fontsize='large')
     fig.supxlabel('Date')
-    fig.legend(loc='upper center', ncol=3, fontsize='medium', frameon=False)
+    # fig.legend(loc='upper center', ncol=3, fontsize='medium', frameon=False)
     #remove subplot that isnot needed
     fig.delaxes(axes[2,1])
     

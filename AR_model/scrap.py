@@ -167,3 +167,74 @@ def plot_split_ofdata():
     # #adjust space tight layout is taking in windows canva, neede that legend on top and label in bottom are shown. 
     plt.tight_layout(rect=[0.0, 0.06 ,0.96, 0.9],pad=0.3) #rect: [left, bottom, right, top]
     plt.savefig(r'C:\Users\henri\Documents\Universität\Masterthesis\Report\model_data.png', dpi=600)
+    
+    
+#plot split for 2station model
+def plot_split_ofdata2():    
+    station=['ns Uldumkær','Brestenbro']
+    fig, axes=plt.subplots(2,1, figsize=cm2inch((15,9)), sharex=True)
+    axes=axes.flatten()
+    linestyles=['solid', 'dashed']
+
+
+    for i, test_station in enumerate(station):
+        ax=axes[i]
+        test_prcp='05225'
+        # import pdb
+        # pdb.set_trace()
+        X, test_id=load_data(test_station, test_prcp)
+        
+        dates=pd.to_datetime(X.index)
+        
+        X_train_plot=X.copy()
+        X_val_plot=X.copy()
+        X_test_plot=X.copy()
+        X_train_plot['2018-11-01':]=np.nan
+        X_train_plot[(dates<'2015-11-01')]=np.nan
+        X_val_plot[(dates<'2018-11-01')]=np.nan
+        X_val_plot[(dates>'2020-10-31')]=np.nan
+        X_test_plot[dates<'2020-10-31']=np.nan
+        X_test_plot[dates>'2021-11-01']=np.nan
+        
+        if i==0:
+            ax.plot(dates, X_train_plot[test_id], label='Train', linestyle='solid', color='blue')
+            ax.plot(dates, X_val_plot[test_id], label='Validation', linestyle='solid', color='darkorange')
+            ax.plot(dates,X_test_plot[test_id], label='Test', linestyle='solid',color='green')
+        else:
+            ax.plot(dates, X_train_plot[test_id], linestyle='solid', color='blue')
+            ax.plot(dates, X_val_plot[test_id],  linestyle='solid',color='darkorange')
+            ax.plot(dates,X_test_plot[test_id],  linestyle='solid', color='green')
+            
+        #adjust xticks
+        locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
+        formatter = mdates.ConciseDateFormatter(locator)
+        ax.xaxis.set_major_locator(locator)
+        ax.xaxis.set_major_formatter(formatter)
+        
+        #set fontzise of yaxis
+        ax.tick_params('y', labelsize='medium')
+        # ax.set_ylim(49.32, 51.1)               
+        # Create a second y-axis for precipitation
+        ax2 = ax.twinx()
+        # ax2.plot(dates, X[test_prcp])
+        ax2.bar(X['2015-11-01':'2021-11-01'].index, -X['2015-11-01':'2021-11-01'][test_prcp], width=0.01, color='lightsteelblue',edgecolor='lightsteelblue') #alternative: cornflowerblue
+        ax2.tick_params('y', labelsize='medium')
+        ax2.set_ylim(-50, 0)
+        
+        # Invert the tick labels on the second y-axis such that they are displayed positive
+        yticks = ax2.get_yticks()
+        ax2.set_yticks(yticks)
+        #make yticks label positive and without decimals
+        ax2.set_yticklabels([f'{abs(y):.0f}' for y in yticks])
+        ax.set_title(f'{test_station}', loc='left', fontsize='medium')
+
+    ax.set_xlabel('Date', fontsize='large')
+    fig.legend(loc='upper center', ncol=3, fontsize='medium', frameon=False)
+    fig.text(0.96, 0.5, 'Precipitation [mm/h]', va='center',rotation=-90, fontsize='large')
+    fig.text(0.02, 0.5, 'Water level [m]', va='center', rotation='vertical', fontsize='large')
+    plt.subplots_adjust(left= 0.06, bottom=0.06,right=0.96, top=1.0, hspace=0.2)
+    # #adjust space tight layout is taking in windows canva, neede that legend on top and label in bottom are shown. 
+    plt.tight_layout(rect=[0.06, 0.06 ,0.96, 0.9],pad=0.3) #rect: [left, bottom, right, top]
+    # plt.savefig(r'C:\Users\henri\Documents\Universität\Masterthesis\Report\model_data_LSTM_AW.png', dpi=600)
+    
+plot_split_ofdata2()

@@ -25,11 +25,11 @@ from plot_utils import cm2inch
 # respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_wo_prcp'
 # respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_AR'
 # respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_AR_Bjerrinbro_station'
-# respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_2stations'
-respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_TE'
+respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_2stations'
+# respath=r'C:\Users\henri\Documents\Universität\Masterthesis\Results\LSTM_TE'
 
 #Save figures??
-save=True
+save=False
 
 configpath=os.path.join(respath, 'configs.csv')
 #Read csv file with model configurations
@@ -47,8 +47,8 @@ window=[10, 20, 50]
 #plot statics
 msize=1
 colorlist=['darkorange', 'lightskyblue', 'lime', 'olive', 'darkviolet']
-# months=['07']   
-months=['02','03','04','05','06','07','08','09','10','11']
+months=['07']   
+#months=['02','03','04','05','06','07','08','09','10','11']
 # import pdb 
 # pdb.set_trace()
 for m in months:
@@ -102,8 +102,7 @@ for m in months:
         elif test_id=='210891':
             ax1.set_ylim(3,4.5) #TODO
         else:
-            a=2
-            # ax1.set_ylim(49.6, 50.0)
+            ax1.set_ylim(49.65, 50.2)
         
         for th in plot_h:
             for i, preds in enumerate(pred_list): #TODO adust if all TH should be shown
@@ -114,7 +113,7 @@ for m in months:
                     TOP=f'2022-{m}-07 00:00:00' #09-06
                 if X_test.shape[1]>2:
                     # TOP=f'{X_test.index[1].year}-{m}-20 00:00:00'
-                    TOP=f'2022-{m}-01 00:00:00' #set to 2021 if done for 2 stations # set to 7th of July for thesis presentation #TODO
+                    TOP=f'2021-{m}-15 00:00:00' #set to 2021 if done for 2 stations # set to 7th of July for thesis presentation #TODO
                 if test_id=='210891':
                     TOP='2022-03-07 00:00:00' #09-06
                 
